@@ -71,7 +71,7 @@ export function MarketDistribution({ tokens }: MarketDistributionProps) {
         </ResponsiveContainer>
       </div>
       <div className="flex flex-wrap gap-3 mt-4 justify-center">
-        {chartData.slice(0, 4).map((entry, index) => (
+        {chartData.map((entry, index) => (
           <div key={entry.name} className="flex items-center gap-1.5">
             <div
               className="w-2 h-2 rounded-full"

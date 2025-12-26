@@ -1,19 +1,32 @@
 import { cn } from '@/lib/utils';
 import type { GoldToken } from '@/types/gold';
 
+interface AnalysisData {
+  summary: string;
+  generatedAt: string;
+  provider: string;
+}
+
 interface MarketIntelProps {
   token: GoldToken | null;
   goldPrice: number | null;
+  analysis?: AnalysisData;
 }
 
-export function MarketIntel({ token, goldPrice }: MarketIntelProps) {
+export function MarketIntel({ token, goldPrice, analysis }: MarketIntelProps) {
   // Calculate spread vs spot
   const spread = token && goldPrice ? ((token.price - goldPrice) / goldPrice) * 100 : null;
 
-  // Generate market analysis based on token data
+  // Generate market analysis based on token data if no AI analysis is available
   const getAnalysis = (): string => {
     if (!token) return 'Select a token to view market intelligence...';
 
+    // If we have AI analysis, return it
+    if (analysis) {
+      return analysis.summary;
+    }
+
+    // Fallback to generated analysis
     const priceChange = token.chg;
     const isUp = priceChange >= 0;
     const changeAbs = Math.abs(priceChange);
@@ -25,7 +38,7 @@ export function MarketIntel({ token, goldPrice }: MarketIntelProps) {
     } else if (changeAbs > 1) {
       return isUp
         ? `${token.name} maintaining steady upward trajectory. Current price action reflects healthy accumulation phase.`
-        : `${token.name} experiencing minor retracement. Price consolidation typical during periods of market uncertainty.`;
+        : `${token.name} experiencing minor retracement. Price consolidation typical during periods of market uncertainty.`
     } else {
       return `${token.name} trading within tight range. Low volatility suggests stable holder base with minimal speculative activity.`;
     }

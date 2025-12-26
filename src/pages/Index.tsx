@@ -1,3 +1,5 @@
+'use client';
+
 import { useMemo } from 'react';
 import { useGoldData } from '@/hooks/useGoldData';
 import {
@@ -20,6 +22,7 @@ const Index = () => {
     lastUpdated,
     error,
     syncStatus,
+    analyses,
   } = useGoldData();
 
   const selectedToken = useMemo(
@@ -50,7 +53,7 @@ const Index = () => {
           <section className="lg:col-span-8 xl:col-span-6 flex flex-col gap-6">
             <PerformanceChart token={selectedToken} />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <MarketIntel token={selectedToken} goldPrice={goldPrice} />
+              <MarketIntel token={selectedToken} goldPrice={goldPrice} analysis={analyses[selectedTokenId || '']} />
               <AssetSpecs token={selectedToken} />
             </div>
             <TokenizedGoldList />

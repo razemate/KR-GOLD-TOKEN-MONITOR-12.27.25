@@ -1,5 +1,6 @@
+'use client';
+
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { TokenizedGoldResponse } from '@/types/gold';
 
 interface UseTokenizedGoldDataReturn {
@@ -19,10 +20,21 @@ export function useTokenizedGoldData(): UseTokenizedGoldDataReturn {
       setError(null);
 
       try {
-        const { data, error: fetchError } = await supabase.functions.invoke<TokenizedGoldResponse>('coingecko-tokenized-gold');
+        const response = await fetch('/api/gold-intel');
 
-        if (fetchError) {
-          throw new Error(fetchError.message);
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+
+        if (data.error) {
+          // Handle the new error format
+          if (data.error === "MISSING_ENV") {
+            const missingKeys = data.missing?.join(', ') || 'unknown';
+            throw new Error(`Missing environment variables: ${missingKeys}. Please add your API keys to .env.local file.`);
+          }
+          throw new Error(data.error);
         }
 
         if (!data || !data.tokens) {

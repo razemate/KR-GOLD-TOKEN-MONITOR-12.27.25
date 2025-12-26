@@ -1,3 +1,5 @@
+'use client';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTokenizedGoldData } from '@/hooks/useTokenizedGoldData';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -61,12 +63,12 @@ const TokenizedGoldList = () => {
               <div key={index} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
                 <div>
                   <div className="font-medium">{token.name}</div>
-                  <div className="text-sm text-muted-foreground">{token.symbol}</div>
+                  <div className="text-sm text-muted-foreground">{token.sym}</div>
                 </div>
                 <div className="text-right">
-                  <div className="font-medium">${formatNumber(token.current_price)}</div>
+                  <div className="font-medium">${formatNumber(token.price)}</div>
                   <div className="text-sm text-muted-foreground">
-                    MCap: {formatMarketCap(token.market_cap)}
+                    MCap: {formatMarketCap(token.cap)}
                   </div>
                 </div>
               </div>

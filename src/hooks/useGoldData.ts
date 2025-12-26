@@ -1,6 +1,20 @@
+'use client';
+
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import type { GoldToken, GoldDataResponse } from '@/types/gold';
+import type { GoldToken } from '@/types/gold';
+
+// Define the response type for the new API
+interface GoldIntelResponse {
+  tokens: GoldToken[];
+  analyses: Record<string, { summary: string, generatedAt: string, provider: string }>;
+  generatedAt: string;
+  refreshPolicy: {
+    timezone: string;
+    cadenceMinutes: number;
+    isWeekend: boolean;
+  };
+  error?: string;
+}
 
 const CONFIG = {
   CACHE_KEY: 'gold_monitor_v1',
@@ -19,6 +33,7 @@ interface UseGoldDataReturn {
   loading: boolean;
   error: string | null;
   syncStatus: 'idle' | 'syncing' | 'synced' | 'error';
+  analyses: Record<string, { summary: string, generatedAt: string, provider: string }>;
 }
 
 const isPacificWeekend = (): boolean => {
@@ -38,7 +53,8 @@ export function useGoldData(): UseGoldDataReturn {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
-  
+  const [analyses, setAnalyses] = useState<Record<string, { summary: string, generatedAt: string, provider: string }>>({});
+
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const loadData = useCallback(async () => {
@@ -54,6 +70,7 @@ export function useGoldData(): UseGoldDataReturn {
           setTokens(data.tokens);
           setGoldPrice(data.goldPrice);
           setAggregateCap(data.aggregateCap);
+          setAnalyses(data.analyses || {});
           setLastUpdated(new Date(data.lastUpdated));
           if (!selectedTokenId) {
             setSelectedTokenId(data.tokens[0]?.id);
@@ -65,12 +82,23 @@ export function useGoldData(): UseGoldDataReturn {
       console.warn('Cache load failed', e);
     }
 
-    // Fetch fresh data from edge function
+    // Fetch fresh data from the new Vercel API route
     try {
-      const { data, error: fetchError } = await supabase.functions.invoke<GoldDataResponse>('gold-data');
+      const response = await fetch('/api/gold-intel');
 
-      if (fetchError) {
-        throw new Error(fetchError.message);
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status} ${response.statusText}`);
+      }
+
+      const data: GoldIntelResponse = await response.json();
+
+      if (data.error) {
+        // Handle the new error format
+        if (data.error === "MISSING_ENV") {
+          const missingKeys = data.missing?.join(', ') || 'unknown';
+          throw new Error(`Missing environment variables: ${missingKeys}. Please add your API keys to .env.local file.`);
+        }
+        throw new Error(data.error);
       }
 
       if (!data || !data.tokens || data.tokens.length === 0) {
@@ -78,16 +106,26 @@ export function useGoldData(): UseGoldDataReturn {
       }
 
       setTokens(data.tokens);
-      setGoldPrice(data.goldPrice);
-      setAggregateCap(data.aggregateCap);
-      setLastUpdated(new Date(data.lastUpdated));
+      // Use the top token's price as reference gold spot (most liquid gold token)
+      setGoldPrice(data.tokens[0]?.price || null);
+      // Calculate aggregate market cap
+      const aggregate = data.tokens.reduce((acc, t) => acc + (t.cap || 0), 0);
+      setAggregateCap(aggregate);
+      setAnalyses(data.analyses);
+      setLastUpdated(new Date(data.generatedAt));
 
       if (!selectedTokenId && data.tokens.length > 0) {
         setSelectedTokenId(data.tokens[0].id);
       }
 
       // Update cache
-      localStorage.setItem(CONFIG.CACHE_KEY, JSON.stringify(data));
+      localStorage.setItem(CONFIG.CACHE_KEY, JSON.stringify({
+        tokens: data.tokens,
+        goldPrice: data.tokens[0]?.price || null,
+        aggregateCap: aggregate,
+        analyses: data.analyses,
+        lastUpdated: data.generatedAt
+      }));
 
       setSyncStatus('synced');
       setLoading(false);
@@ -109,10 +147,10 @@ export function useGoldData(): UseGoldDataReturn {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
-      
+
       const intervalMs = isPacificWeekend() ? CONFIG.WEEKEND_INTERVAL : CONFIG.WEEKDAY_INTERVAL;
       console.log(`Auto-refresh: ${isPacificWeekend() ? 'Weekend (15min)' : 'Weekday (5min)'}`);
-      
+
       intervalRef.current = setInterval(loadData, intervalMs);
     };
 
@@ -141,5 +179,6 @@ export function useGoldData(): UseGoldDataReturn {
     loading,
     error,
     syncStatus,
+    analyses,
   };
 }
