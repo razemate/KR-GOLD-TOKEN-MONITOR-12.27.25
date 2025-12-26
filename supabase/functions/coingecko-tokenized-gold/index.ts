@@ -12,15 +12,16 @@ serve(async (req) => {
   }
 
   try {
-    console.log('Fetching top 10 tokenized gold data from CoinGecko...');
+    console.log('Fetching tokenized gold tokens data from CoinGecko...');
 
-    // Fetch top 10 tokenized gold market data from CoinGecko
-    const coingeckoUrl = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&category=tokenized-gold&order=market_cap_desc&per_page=10&sparkline=true&price_change_percentage=24h';
+    // Fetch tokenized gold market data from CoinGecko
+    const coingeckoUrl = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&category=tokenized-gold&order=market_cap_desc&per_page=10';
 
+    // Add API key if available in environment
     const headers: Record<string, string> = {
       'Accept': 'application/json',
     };
-
+    
     // Check if we have a CoinGecko API key in environment variables
     const apiKey = Deno.env.get('COINGECKO_API_KEY');
     if (apiKey) {
@@ -29,6 +30,7 @@ serve(async (req) => {
 
     const response = await fetch(coingeckoUrl, {
       headers,
+      cache: 'no-store' // Force fresh result every time
     });
 
     if (!response.ok) {
@@ -37,42 +39,21 @@ serve(async (req) => {
     }
 
     const tokensData = await response.json();
-    console.log(`Received ${tokensData.length} tokens from CoinGecko`);
+    console.log(`Received ${tokensData.length} tokenized gold tokens from CoinGecko`);
 
-    // Process and format token data
+    // Process and format token data - only include required fields
     const tokens = tokensData.map((t: any) => ({
-      id: t.id,
-      sym: (t.symbol || '').toUpperCase(),
       name: t.name,
-      img: t.image,
-      price: t.current_price,
-      cap: t.market_cap,
-      chg: t.price_change_percentage_24h,
-      high: t.high_24h,
-      low: t.low_24h,
-      volume: t.total_volume,
-      circSupply: t.circulating_supply,
-      totalSupply: t.total_supply,
-      ath: t.ath,
-      athDate: t.ath_date,
-      atl: t.atl,
-      atlDate: t.atl_date,
-      spark: t.sparkline_in_7d?.price?.filter((v: number) => v != null) || []
+      symbol: (t.symbol || '').toUpperCase(),
+      current_price: t.current_price,
+      market_cap: t.market_cap,
     }));
 
-    // Use the top token's price as reference gold spot (most liquid gold token)
-    const goldSpotPrice = tokens[0]?.price || 0;
-
-    // Calculate aggregate market cap
-    const aggregateCap = tokens.reduce((acc: number, t: any) => acc + (t.cap || 0), 0);
-
-    console.log(`Gold spot reference: $${goldSpotPrice}, Aggregate cap: $${aggregateCap}`);
+    console.log(`Successfully processed ${tokens.length} tokenized gold tokens`);
 
     return new Response(
       JSON.stringify({
         tokens,
-        goldPrice: goldSpotPrice,
-        aggregateCap,
         lastUpdated: new Date().toISOString(),
       }),
       {
@@ -81,13 +62,11 @@ serve(async (req) => {
     );
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    console.error('Error fetching gold data:', errorMessage);
+    console.error('Error fetching tokenized gold data:', errorMessage);
     return new Response(
       JSON.stringify({
         error: errorMessage,
         tokens: [],
-        goldPrice: 0,
-        aggregateCap: 0,
         lastUpdated: new Date().toISOString(),
       }),
       {

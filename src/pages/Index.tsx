@@ -7,6 +7,7 @@ import {
   MarketIntel,
   AssetSpecs,
   MarketDistribution,
+  TokenizedGoldList,
 } from '@/components/gold';
 
 const Index = () => {
@@ -52,6 +53,7 @@ const Index = () => {
               <MarketIntel token={selectedToken} goldPrice={goldPrice} />
               <AssetSpecs token={selectedToken} />
             </div>
+            <TokenizedGoldList />
           </section>
           <aside className="lg:col-span-12 xl:col-span-3">
             <MarketDistribution tokens={tokens} />

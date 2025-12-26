@@ -1,1 +1,8 @@
 project_id = "qhsokpkgjmsyrkqdnhxj"
+
+[functions]
+[functions.coingecko-tokenized-gold]
+verify_jwt = false
+
+[functions."gold-data"]
+verify_jwt = false

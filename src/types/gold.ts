@@ -25,3 +25,16 @@ export interface GoldDataResponse {
   lastUpdated: string;
   error?: string;
 }
+
+export interface TokenizedGoldToken {
+  name: string;
+  symbol: string;
+  current_price: number;
+  market_cap: number;
+}
+
+export interface TokenizedGoldResponse {
+  tokens: TokenizedGoldToken[];
+  lastUpdated: string;
+  error?: string;
+}
