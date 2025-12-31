@@ -1,40 +1,38 @@
-export interface GoldToken {
+// types/gold.ts
+// Strict domain models according to blueprint specifications
+
+export type Token = {
   id: string;
-  sym: string;
+  symbol: string;
   name: string;
-  img: string;
+  image: string;
+  priceUsd: number;
+  change24hPct: number | null;
+  marketCapUsd: number | null;
+  volume24hUsd: number | null;
+  circulatingSupply: number | null;
+  totalSupply: number | null;
+  high24h: number | null;
+  low24h: number | null;
+};
+
+export type ChartPoint = {
+  t: number;
   price: number;
-  cap: number;
-  chg: number;
-  high: number;
-  low: number;
-  volume: number;
-  circSupply: number;
-  totalSupply: number;
-  ath: number;
-  athDate: string;
-  atl: number;
-  atlDate: string;
-  spark: number[];
+};
+
+// Internal types for API response handling
+export interface AnalysisResult {
+  summary: string | null;
+  provider: string | null;
+  generatedAt: string | null;
 }
 
 export interface GoldDataResponse {
-  tokens: GoldToken[];
-  goldPrice: number;
+  tokens: Token[];
+  goldPrice: number | null;
   aggregateCap: number;
   lastUpdated: string;
-  error?: string;
-}
-
-export interface TokenizedGoldToken {
-  name: string;
-  symbol: string;
-  current_price: number;
-  market_cap: number;
-}
-
-export interface TokenizedGoldResponse {
-  tokens: TokenizedGoldToken[];
-  lastUpdated: string;
+  analyses: Record<string, AnalysisResult>;
   error?: string;
 }

@@ -1,73 +1,128 @@
-# Welcome to your Lovable project
+# KR Gold Token Monitor
 
-## Project info
+## Overview
+KR Gold Token Monitor is a **token intelligence dashboard** focused exclusively on **Tokenized Gold assets**. It tracks, analyzes, and explains the behavior of the **Top 10 Tokenized Gold tokens** using **CoinGecko FREE market data** and **Google Gemini AI** for qualitative analysis. The app is designed to be analyst-grade, deterministic, rebuildable, free-tier compliant, and production-ready on Vercel.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Core Principles (Non-Negotiable)
+- CoinGecko **FREE API only** (no Pro endpoints, no Pro keys, no Pro headers)
+- **Google Gemini API only** for AI analysis
+- Gemini API key is stored **server-side in Vercel environment variables**
+- No user-entered API keys
+- No Docker
+- No native build tools
+- Node.js **20 LTS**
+- Single source of truth: `BLUEPRINT.md`
 
-## How can I edit this code?
+## What This App Does
+1. Displays the **Top 10 Tokenized Gold tokens** as defined by CoinGecko’s Tokenized Gold category.
+2. Allows the user to select a token from the **left sidebar**.
+3. Renders a **7-day price chart** for the selected token.
+4. Displays **five intelligence containers** that analyze peg accuracy, liquidity, asset backing, and market behavior.
+5. Uses **Gemini AI** to generate a concise qualitative explanation of market conditions.
 
-There are several ways of editing your application.
+## UI Layout (High-Level)
+- Left Sidebar: Top 10 Tokenized Gold tokens (asset selector)
+- Right Main Panel:
+  - 7-day price chart (top)
+  - Five intelligence containers (grid):
+    1. AI Market Sentinel
+    2. Peg Efficiency
+    3. Asset Depth
+    4. Liquidity Health
+    5. Performance & Range
 
-**Use Lovable**
+## Data Sources
+### Market Data
+- Provider: CoinGecko
+- Tier: **FREE ONLY**
+- Endpoint used:
+  https://api.coingecko.com/api/v3/coins/markets
+- Category:
+  tokenized-gold
+- The app never uses CoinGecko Pro endpoints or keys.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+### AI Analysis
+- Provider: Google Gemini
+- Scope: AI Market Sentinel container only
+- API key: Stored in Vercel environment variables
+- Never exposed to the client
+- No OpenAI, Claude, or other AI providers are used
 
-Changes made via Lovable will be committed automatically to this repo.
+## Intelligence Containers
+### 1. AI Market Sentinel (The Brain)
+- Uses Gemini AI
+- Outputs:
+  - Sentiment label (e.g., Bullish Accumulation, Bearish Divergence)
+  - Short narrative explanation
+- Inputs include volume, volatility, trend, and peg behavior
+- Deterministic fallback logic may be used if AI is unavailable
 
-**Use your preferred IDE**
+### 2. Peg Efficiency (The Accuracy)
+- Pure mathematical calculation
+- Formula:
+  ((Token Price − Spot Gold Price) / Spot Gold Price) × 100
+- Displays percentage deviation with color-coded status
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### 3. Asset Depth (The Vault)
+- Converts digital supply to physical gold
+- Formula:
+  circulating_supply / 32,150.7 = tonnes of gold
+- Displays tonnes of gold backing circulation
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### 4. Liquidity Health (The Exit Strategy)
+- Measures trading activity
+- Formula:
+  (total_volume / market_cap) × 100
+- Displays turnover percentage with qualitative label
 
-Follow these steps:
+### 5. Performance & Range (The Action)
+- Shows where current price sits within daily range
+- Uses:
+  low_24h, high_24h, current_price
+- Visualized as a horizontal progress bar or slider
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+## Tech Stack
+- Framework: Next.js (App Router)
+- Language: TypeScript (strict)
+- Styling: Tailwind CSS
+- Charts: Recharts
+- Deployment: Vercel
+- Runtime: Node.js 20 LTS
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## Environment Variables (Vercel)
+Required:
+GEMINI_API_KEY=your_gemini_api_key
+Not used:
+- CoinGecko Pro API key
+- Any client-side API secrets
 
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+## Local Development
+npm install
 npm run dev
-```
 
-**Edit a file directly in GitHub**
+## Production Build
+npm run build
+npm run start
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Project Files
+- BLUEPRINT.md: Authoritative architecture, logic, and UI specification
+- app/: Next.js App Router
+- components/: UI components
+- lib/: Data normalization, formatting, and utilities
 
-**Use GitHub Codespaces**
+## Guardrails
+- Exactly 10 tokens displayed at all times
+- Sidebar controls all state changes
+- No NaN or undefined UI values
+- No layout shifts
+- Dark mode by default
+- All external API calls are server-side only
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Using With AI Tools
+This repository is designed to work with:
+- Byterover (`brv`) for long-term project memory
+- Qwen CLI for code generation and fixes
+All AI tools must read and respect `BLUEPRINT.md` before making changes.
 
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## Final Note
+This is not a generic crypto tracker. It is a **gold-focused intelligence system** combining quantitative rigor with AI-assisted interpretation, built to remain **free, stable, and auditable**. Any change to data sources, AI provider, calculations, or UI layout must be reflected in `BLUEPRINT.md` first.

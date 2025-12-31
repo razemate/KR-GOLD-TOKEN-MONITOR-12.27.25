@@ -1,3 +1,0 @@
-module.exports=[26246,(a,b,c)=>{let{createClientModuleProxy:d}=a.r(37625);a.n(d("[project]/Downloads/APPS - PROTOTYPING/Gold Token Monitor - Lovable/node_modules/next/dist/client/components/builtin/global-error.js <module evaluation>"))},62691,(a,b,c)=>{let{createClientModuleProxy:d}=a.r(37625);a.n(d("[project]/Downloads/APPS - PROTOTYPING/Gold Token Monitor - Lovable/node_modules/next/dist/client/components/builtin/global-error.js"))},56875,a=>{"use strict";a.i(26246);var b=a.i(62691);a.n(b)}];
-
-//# sourceMappingURL=c7bfa_next_dist_client_components_builtin_global-error_5adae891.js.map
