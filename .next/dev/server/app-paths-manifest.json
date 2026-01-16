@@ -1,6 +1,0 @@
-{
-  "/api/ai/sentinel/route": "app/api/ai/sentinel/route.js",
-  "/api/tokens/[id]/chart/route": "app/api/tokens/[id]/chart/route.js",
-  "/api/tokens/route": "app/api/tokens/route.js",
-  "/page": "app/page.js"
-}
