@@ -8,6 +8,30 @@ interface Props {
   isLoading?: boolean;
 }
 
+function formatUsd(value: number) {
+  return `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function formatSignedPct(value: number) {
+  if (!Number.isFinite(value)) return '0.00%';
+  const sign = value > 0 ? '+' : '';
+  return `${sign}${value.toFixed(2)}%`;
+}
+
+function getTrendLabel(prices: number[]) {
+  if (prices.length < 2) return 'flat';
+  const window = prices.slice(-Math.min(5, prices.length));
+  let ups = 0;
+  let downs = 0;
+  for (let i = 1; i < window.length; i += 1) {
+    if (window[i] > window[i - 1]) ups += 1;
+    if (window[i] < window[i - 1]) downs += 1;
+  }
+  if (ups > downs) return 'rising';
+  if (downs > ups) return 'falling';
+  return 'flat';
+}
+
 const SevenDayChart: React.FC<Props> = ({ data, color = '#EAB308', isLoading = false }) => {
   const [isDark, setIsDark] = useState(false);
 
@@ -25,11 +49,8 @@ const SevenDayChart: React.FC<Props> = ({ data, color = '#EAB308', isLoading = f
 
   if (isLoading) {
     return (
-      <div className="h-64 sm:h-80 w-full bg-white dark:bg-slate-900 rounded-lg p-6 border border-slate-200 dark:border-slate-800 shadow-sm transition-colors duration-300 animate-pulse">
-        <div className="flex justify-between items-center mb-6">
-          <div className="h-4 w-32 bg-slate-100 dark:bg-slate-800 rounded" />
-        </div>
-        <div className="w-full h-[85%] bg-slate-50 dark:bg-slate-950/50 rounded-lg" />
+      <div className="h-64 sm:h-80 w-full bg-white dark:bg-slate-900 rounded-lg p-6 border border-slate-200 dark:border-slate-800 shadow-sm transition-colors duration-300">
+        <div className="h-full w-full bg-slate-50 dark:bg-slate-950/50 rounded-lg animate-pulse" />
       </div>
     );
   }
@@ -37,7 +58,7 @@ const SevenDayChart: React.FC<Props> = ({ data, color = '#EAB308', isLoading = f
   if (!data || data.length === 0) {
     return (
       <div className="flex items-center justify-center h-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg transition-colors duration-300">
-        <p className="text-slate-500">Chart data unavailable</p>
+        <p className="text-slate-500">N/A</p>
       </div>
     );
   }
@@ -46,6 +67,11 @@ const SevenDayChart: React.FC<Props> = ({ data, color = '#EAB308', isLoading = f
   const min = Math.min(...prices);
   const max = Math.max(...prices);
   const padding = (max - min) * 0.1;
+  const first = prices[0];
+  const last = prices[prices.length - 1];
+  const changePct = first ? ((last - first) / first) * 100 : 0;
+  const trend = getTrendLabel(prices);
+  const summary = `7D change ${formatSignedPct(changePct)}, range ${formatUsd(min)}-${formatUsd(max)}, trend: ${trend}.`;
 
   // Calculate one tick per calendar day (stable + ordered)
   const seenDays = new Set<string>();
@@ -71,7 +97,7 @@ const SevenDayChart: React.FC<Props> = ({ data, color = '#EAB308', isLoading = f
     <div className="h-64 sm:h-80 w-full bg-white dark:bg-slate-900 rounded-lg p-4 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-sm transition-colors duration-300 flex flex-col">
       <div className="flex flex-col mb-4">
         <h3 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest transition-colors duration-300">7-Day Price Action</h3>
-        <p className="text-[13px] text-slate-600 dark:text-slate-400 mt-1">Short-term price action shows higher highs into week close, broadly tracking spot gold.</p>
+        <p className="text-[13px] text-slate-600 dark:text-slate-400 mt-1">{summary}</p>
       </div>
       <div className="flex-1 min-h-0">
         <ResponsiveContainer width="100%" height="100%">
@@ -136,3 +162,4 @@ const SevenDayChart: React.FC<Props> = ({ data, color = '#EAB308', isLoading = f
 };
 
 export default SevenDayChart;
+

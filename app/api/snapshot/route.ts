@@ -140,10 +140,11 @@ export async function GET() {
         'Cache-Control': cacheHeader,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Unknown error";
     console.error("Snapshot generation failed:", error);
     return NextResponse.json(
-      { error: "Failed to generate snapshot", details: error.message },
+      { error: "Failed to generate snapshot", details: message },
       { status: 500 }
     );
   }

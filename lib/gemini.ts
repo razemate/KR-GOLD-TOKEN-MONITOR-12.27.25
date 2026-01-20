@@ -7,6 +7,7 @@ const MODEL_NAME = 'gemini-2.5-flash';
 const snapshotSchema: Schema = {
   type: SchemaType.OBJECT,
   properties: {
+    spotGoldUsd: { type: SchemaType.NUMBER },
     items: {
       type: SchemaType.ARRAY,
       items: {
@@ -28,7 +29,7 @@ const snapshotSchema: Schema = {
       }
     }
   },
-  required: ['items']
+  required: ['spotGoldUsd', 'items']
 };
 
 export async function generateSnapshotIntelligence(
@@ -46,7 +47,7 @@ export async function generateSnapshotIntelligence(
     systemInstruction: `You are a Senior RWA (Real World Asset) Analyst specializing in Gold-Pegged Tokens.
 PROTOCOL: Before providing the JSON output, you must "think" through the following:
 
-Do NOT attempt to retrieve spot gold prices. A separate system provides spot pricing.
+Retrieve the current spot gold price (USD/oz) using Google Search Grounding.
 Calculate the % deviation between each token's current_price and the provided spot price (if available).
 
 Compare the 24h volume against the market cap to verify liquidity health.
@@ -105,9 +106,10 @@ The 'confidence0to100' score must reflect the consistency between the price and 
     }))}
   `;
 
-  let result: any;
-  let generatePromise: Promise<any>;
-  let timeoutPromise: Promise<any>;
+  type GenerateContentResult = Awaited<ReturnType<typeof model.generateContent>>;
+  let result: GenerateContentResult;
+  let generatePromise: Promise<GenerateContentResult>;
+  let timeoutPromise: Promise<GenerateContentResult>;
 
   try {
     timeoutPromise = new Promise((_, reject) => 
@@ -116,6 +118,7 @@ The 'confidence0to100' score must reflect the consistency between the price and 
 
     generatePromise = model.generateContent({
       contents: [{ role: "user", parts: [{ text: prompt }] }],
+      tools: [{ googleSearch: {} }],
       generationConfig: {
         responseMimeType: "application/json",
         responseSchema: snapshotSchema,
@@ -125,16 +128,21 @@ The 'confidence0to100' score must reflect the consistency between the price and 
     result = await Promise.race([generatePromise, timeoutPromise]);
     const responseText = result.response.text();
     const parsed = JSON.parse(responseText);
+    const spotGoldUsd = Number(parsed.spotGoldUsd);
+    const validSpotGoldUsd =
+      Number.isFinite(spotGoldUsd) && spotGoldUsd > 1000 && spotGoldUsd < 10000
+        ? spotGoldUsd
+        : null;
     
     if (!parsed.items || !Array.isArray(parsed.items) || parsed.items.length === 0) {
       throw new Error("Invalid or empty response from Gemini");
     }
 
     return {
-      spotGoldUsd: null,
+      spotGoldUsd: validSpotGoldUsd,
       items: parsed.items
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Gemini batch call failed:", error);
     throw error;
   }
@@ -211,3 +219,4 @@ export function getFallbackIntelligence(token: TokenMarket, metrics: DerivedMetr
     watch: `Watch for volume spike above $${(token.total_volume * 1.5 / 1000000).toFixed(2)}M at $${(price * (isPositive ? 1.02 : 0.98)).toFixed(2)}.`
   };
 }
+

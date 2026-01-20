@@ -15,7 +15,7 @@ interface RawTokenData {
   low_24h?: number;
   ath?: number;
   atl?: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export function normalizeTokenData(token: RawTokenData): TokenMarket {
@@ -37,7 +37,7 @@ export function normalizeTokenData(token: RawTokenData): TokenMarket {
   };
 }
 
-export function sanitizeChartData(points: any[]): TokenChartPoint[] {
+export function sanitizeChartData(points: unknown[]): TokenChartPoint[] {
   if (!Array.isArray(points)) return [];
   return points
     .filter(p => p && Array.isArray(p) && p.length >= 2 && typeof p[0] === 'number' && typeof p[1] === 'number')

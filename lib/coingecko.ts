@@ -3,10 +3,19 @@ import { TokenMarket, TokenChartPoint } from '@/lib/types';
 
 const COINGECKO_API = 'https://api.coingecko.com/api/v3';
 
+function getCoingeckoHeaders() {
+  const headers: Record<string, string> = { Accept: 'application/json' };
+  const cg = process.env.COINGECKO_API_KEY;
+  if (cg) {
+    headers['x-cg-demo-api-key'] = cg;
+  }
+  return headers;
+}
+
 export async function fetchTopGoldTokens(): Promise<TokenMarket[]> {
   const url = `${COINGECKO_API}/coins/markets?vs_currency=usd&category=tokenized-gold&order=market_cap_desc&per_page=10&page=1&sparkline=false&price_change_percentage=24h`;
   try {
-    const response = await fetchWithRetry(url);
+    const response = await fetchWithRetry(url, { headers: getCoingeckoHeaders() });
     const data = await response.json();
     if (!Array.isArray(data)) {
       console.error("CoinGecko markets response is not an array:", data);
@@ -22,7 +31,7 @@ export async function fetchTopGoldTokens(): Promise<TokenMarket[]> {
 export async function fetchTokenChart(tokenId: string): Promise<TokenChartPoint[]> {
   try {
     const url = `${COINGECKO_API}/coins/${tokenId}/market_chart?vs_currency=usd&days=7`;
-    const response = await fetchWithRetry(url, {}, 1, 2000); 
+    const response = await fetchWithRetry(url, { headers: getCoingeckoHeaders() }, 1, 2000); 
     const data = await response.json();
     if (!data.prices || !Array.isArray(data.prices)) return [];
     return data.prices.map((p: [number, number]) => ({ timestamp: p[0], price: p[1] }));

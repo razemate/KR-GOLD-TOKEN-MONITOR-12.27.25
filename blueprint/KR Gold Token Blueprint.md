@@ -31,7 +31,8 @@ UNKNOWN and N/A are valid final states.
 
 ### 0.3 COINGECKO FREE ONLY  
 Use `https://api.coingecko.com/api/v3` ONLY.  
-NO API keys. NO CoinGecko Pro. NO demo endpoints.
+Free-tier only. Optional `x-cg-demo-api-key` header is allowed to reduce rate limits.  
+NO CoinGecko Pro. NO Pro endpoints. NO Pro keys.
 
 ### 0.4 AI PROVIDER - PRIMARY (LOCKED)  
 Gemini **2.5 Flash** is the ONE AND ONLY Gemini model allowed.  
@@ -116,7 +117,9 @@ Fallback (only if Gemini spot is null/invalid): `https://data-asg.goldprice.org/
 ## 4. GLOBAL SNAPSHOT & CACHING MODEL
 
 ### 4.1 SINGLE ENDPOINT  
-All data is served from `/api/snapshot`.
+All data is served from `/api/snapshot`.  
+The client/UI must only call `/api/snapshot`.  
+Optional internal diagnostics endpoints may exist: `/api/tokens` and `/api/tokens/[id]/chart` (server-side only, not used by the UI).
 
 ### 4.2 CACHE HEADERS  
 - **Weekdays:** `public, s-maxage=300, stale-while-revalidate=60`  

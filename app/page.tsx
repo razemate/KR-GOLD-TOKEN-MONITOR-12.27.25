@@ -76,9 +76,10 @@ export default function Dashboard() {
         }
 
         timeoutId = setTimeout(fetchSnapshot, delay);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error(err);
-        if (!snapshot) setError(err.message);
+        const message = err instanceof Error ? err.message : "Unknown error";
+        if (!snapshot) setError(message);
         // On error, retry in 30 seconds
         timeoutId = setTimeout(fetchSnapshot, 30000);
       } finally {
