@@ -253,7 +253,11 @@ export default function Dashboard() {
 
           {/* Chart Section */}
           <section>
-            <SevenDayChart data={chartData} isLoading={isLoading} />
+            <SevenDayChart 
+              data={chartData} 
+              isLoading={isLoading} 
+              spotPrice={snapshot?.meta?.goldSpotUsd} 
+            />
           </section>
 
           {/* Five-Card Grid Section (Blueprint §18) */}

@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Label } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Label, ReferenceLine } from 'recharts';
 import { TokenChartPoint } from '@/lib/types';
 
 interface Props {
   data: TokenChartPoint[];
   color?: string;
   isLoading?: boolean;
+  spotPrice?: number | null;
 }
 
 function formatUsd(value: number) {
@@ -32,7 +33,7 @@ function getTrendLabel(prices: number[]) {
   return 'flat';
 }
 
-const SevenDayChart: React.FC<Props> = ({ data, color = '#EAB308', isLoading = false }) => {
+const SevenDayChart: React.FC<Props> = ({ data, color = '#EAB308', isLoading = false, spotPrice }) => {
   const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
@@ -64,9 +65,11 @@ const SevenDayChart: React.FC<Props> = ({ data, color = '#EAB308', isLoading = f
   }
 
   const prices = data.map(d => d.price);
-  const min = Math.min(...prices);
-  const max = Math.max(...prices);
+  const min = Math.min(...prices, spotPrice || Infinity);
+  const max = Math.max(...prices, spotPrice || -Infinity);
+  // Add some buffer so the reference line isn't stuck at the very edge if it's the min/max
   const padding = (max - min) * 0.1;
+  
   const first = prices[0];
   const last = prices[prices.length - 1];
   const changePct = first ? ((last - first) / first) * 100 : 0;
@@ -140,6 +143,21 @@ const SevenDayChart: React.FC<Props> = ({ data, color = '#EAB308', isLoading = f
               }}
               itemStyle={{ color: isDark ? '#f1f5f9' : '#0f172a' }}
             />
+            {spotPrice && (
+              <ReferenceLine 
+                y={spotPrice} 
+                stroke="#ef4444" 
+                strokeDasharray="3 3"
+                strokeOpacity={0.5}
+              >
+                <Label 
+                  value={`Spot: $${spotPrice.toFixed(2)}`} 
+                  position="insideTopRight" 
+                  fill={isDark ? '#ef4444' : '#dc2626'} 
+                  fontSize={10}
+                />
+              </ReferenceLine>
+            )}
             <Line 
               type="monotone" 
               dataKey="price" 
@@ -154,7 +172,7 @@ const SevenDayChart: React.FC<Props> = ({ data, color = '#EAB308', isLoading = f
       </div>
       <div className="mt-4 border-t border-slate-100 dark:border-slate-800 pt-2 pl-[60px]">
         <p className="text-[11px] text-slate-500 dark:text-slate-500 text-center">
-          Price fluctuations remain within the typical weekly range for tokenized gold.
+          Red dashed line indicates the reference Spot Gold Price.
         </p>
       </div>
     </div>
@@ -162,4 +180,3 @@ const SevenDayChart: React.FC<Props> = ({ data, color = '#EAB308', isLoading = f
 };
 
 export default SevenDayChart;
-

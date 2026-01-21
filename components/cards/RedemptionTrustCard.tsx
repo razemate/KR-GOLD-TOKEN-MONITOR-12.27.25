@@ -1,4 +1,5 @@
 import React from 'react';
+import { Landmark, ShieldCheck, RefreshCw, AlertTriangle } from 'lucide-react';
 
 interface Props {
   symbol?: string;
@@ -151,10 +152,13 @@ const RedemptionTrustCard: React.FC<Props> = ({ symbol, isLoading = false }) => 
           </p>
         </div>
 
-        <div className="space-y-3 text-xs md:text-[13px]">
+        <div className="space-y-4 text-xs md:text-[13px]">
           
-          <div className="flex justify-between items-start border-b border-slate-50 dark:border-slate-800/50 pb-2">
-            <span className="text-slate-500 dark:text-slate-400 font-medium">Issuer</span>
+          <div className="flex justify-between items-center border-b border-slate-50 dark:border-slate-800/50 pb-2">
+            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium">
+              <Landmark className="w-4 h-4" />
+              <span>Issuer</span>
+            </div>
             {trustData.issuerUrl ? (
               <a
                 href={trustData.issuerUrl}
@@ -169,8 +173,11 @@ const RedemptionTrustCard: React.FC<Props> = ({ symbol, isLoading = false }) => 
             )}
           </div>
 
-          <div className="flex justify-between items-start border-b border-slate-50 dark:border-slate-800/50 pb-2">
-            <span className="text-slate-500 dark:text-slate-400 font-medium">Custody</span>
+          <div className="flex justify-between items-center border-b border-slate-50 dark:border-slate-800/50 pb-2">
+            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium">
+              <ShieldCheck className="w-4 h-4" />
+              <span>Custody</span>
+            </div>
             {trustData.custodyUrl ? (
               <a
                 href={trustData.custodyUrl}
@@ -185,8 +192,11 @@ const RedemptionTrustCard: React.FC<Props> = ({ symbol, isLoading = false }) => 
             )}
           </div>
 
-          <div className="flex justify-between items-start border-b border-slate-50 dark:border-slate-800/50 pb-2">
-            <span className="text-slate-500 dark:text-slate-400 font-medium">Redemption</span>
+          <div className="flex justify-between items-center border-b border-slate-50 dark:border-slate-800/50 pb-2">
+            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium">
+              <RefreshCw className="w-4 h-4" />
+              <span>Redemption</span>
+            </div>
             {trustData.redemptionUrl ? (
               <a
                 href={trustData.redemptionUrl}
@@ -201,8 +211,11 @@ const RedemptionTrustCard: React.FC<Props> = ({ symbol, isLoading = false }) => 
             )}
           </div>
 
-           <div className="flex justify-between items-start">
-            <span className="text-slate-500 dark:text-slate-400 font-medium">Freeze Risk</span>
+           <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium">
+              <AlertTriangle className="w-4 h-4 text-rose-500" />
+              <span>Freeze Risk</span>
+            </div>
             {trustData.freezeRiskUrl ? (
               <a
                 href={trustData.freezeRiskUrl}
