@@ -143,21 +143,6 @@ const SevenDayChart: React.FC<Props> = ({ data, color = '#EAB308', isLoading = f
               }}
               itemStyle={{ color: isDark ? '#f1f5f9' : '#0f172a' }}
             />
-            {spotPrice && (
-              <ReferenceLine 
-                y={spotPrice} 
-                stroke="#ef4444" 
-                strokeDasharray="3 3"
-                strokeOpacity={0.5}
-              >
-                <Label 
-                  value={`Spot: $${spotPrice.toFixed(2)}`} 
-                  position="insideTopRight" 
-                  fill={isDark ? '#ef4444' : '#dc2626'} 
-                  fontSize={10}
-                />
-              </ReferenceLine>
-            )}
             <Line 
               type="monotone" 
               dataKey="price" 
@@ -167,6 +152,24 @@ const SevenDayChart: React.FC<Props> = ({ data, color = '#EAB308', isLoading = f
               activeDot={{ r: 4, fill: color, strokeWidth: 0 }}
               animationDuration={1000}
             />
+            {spotPrice && (
+              <ReferenceLine 
+                y={spotPrice} 
+                stroke="#ef4444" 
+                strokeDasharray="3 3"
+                strokeWidth={2}
+                strokeOpacity={0.8}
+                isFront={true}
+              >
+                <Label 
+                  value={`Spot: $${spotPrice.toFixed(2)}`} 
+                  position="insideTopRight" 
+                  fill={isDark ? '#ef4444' : '#dc2626'} 
+                  fontSize={10}
+                  fontWeight={600}
+                />
+              </ReferenceLine>
+            )}
           </LineChart>
         </ResponsiveContainer>
       </div>
