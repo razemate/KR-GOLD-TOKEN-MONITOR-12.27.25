@@ -53,39 +53,48 @@ export async function generateOpenRouterIntelligence(
     try {
       console.log(`Attempting OpenRouter fallback with model: ${model}`);
       
-      const response = await fetch(OPENROUTER_API_URL, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://katusa-gold-monitor.vercel.app',
-          'X-Title': 'KR Gold Token Monitor'
-        },
-        body: JSON.stringify({
-          model: model,
-          messages: [{ role: 'user', content: prompt }],
-          response_format: { type: 'json_object' }
-        })
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s timeout per model
 
-      if (!response.ok) {
-        console.warn(`OpenRouter model ${model} failed with status: ${response.status}`);
-        continue;
-      }
+      try {
+        const response = await fetch(OPENROUTER_API_URL, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://katusa-gold-monitor.vercel.app',
+            'X-Title': 'KR Gold Token Monitor'
+          },
+          body: JSON.stringify({
+            model: model,
+            messages: [{ role: 'user', content: prompt }],
+            response_format: { type: 'json_object' }
+          }),
+          signal: controller.signal
+        });
 
-      const result = await response.json();
-      const contentStr = result.choices[0]?.message?.content;
-      
-      if (!contentStr) {
-        throw new Error("Empty response content");
-      }
+        if (!response.ok) {
+          console.warn(`OpenRouter model ${model} failed with status: ${response.status}`);
+          continue;
+        }
 
-      const content = JSON.parse(contentStr);
-      if (!content.items || !Array.isArray(content.items)) {
-         throw new Error("Invalid JSON structure");
+        const result = await response.json();
+        const contentStr = result.choices[0]?.message?.content;
+        
+        if (!contentStr) {
+          throw new Error("Empty response content");
+        }
+
+        const content = JSON.parse(contentStr);
+        if (!content.items || !Array.isArray(content.items)) {
+           throw new Error("Invalid JSON structure");
+        }
+        
+        return content.items;
+
+      } finally {
+        clearTimeout(timeoutId);
       }
-      
-      return content.items;
 
     } catch (error) {
       console.error(`OpenRouter inference failed for ${model}:`, error);

@@ -9,6 +9,8 @@ import { generateOpenRouterIntelligence } from '@/lib/openrouter';
 import { getRefreshCadence } from '@/lib/schedule';
 import { SnapshotResponse, TokenSnapshot, MarketIntelItem } from '@/lib/types';
 
+// Attempt to increase timeout on Pro plan, ignored on Hobby but good practice
+export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
 
 async function appendSpotLog(entry: Record<string, unknown>) {
@@ -22,6 +24,7 @@ async function appendSpotLog(entry: Record<string, unknown>) {
 }
 
 export async function GET() {
+  const startTime = Date.now();
   const { isWeekend, refreshInterval, cacheHeader } = getRefreshCadence();
   const errors: Record<string, string> = {};
 
@@ -97,13 +100,22 @@ export async function GET() {
 
     // 5. Generate Intelligence (Gemini -> OpenRouter -> Fallback)
     if (!geminiSucceeded) {
-      try {
-        // Step B: OpenRouter Fallback - Blueprint Step 4
-        // Uses computed metrics (which might have null peg deviation if spot price is null)
-        intelligenceList = await generateOpenRouterIntelligence(tokens, metricsMap);
-      } catch (orError) {
-        console.error("OpenRouter also failed, using deterministic fallback.", orError);
-        errors.intelligence = "AI services unavailable, using rule-based analysis.";
+      // Check elapsed time. If we are close to Vercel's 10s timeout, skip OpenRouter
+      const elapsed = Date.now() - startTime;
+      const timeLeft = 9500 - elapsed; // 9.5s safety margin
+
+      if (timeLeft > 2000) { // Only try OpenRouter if we have at least 2s left
+        try {
+          // Step B: OpenRouter Fallback - Blueprint Step 4
+          // Uses computed metrics (which might have null peg deviation if spot price is null)
+          intelligenceList = await generateOpenRouterIntelligence(tokens, metricsMap);
+        } catch (orError) {
+          console.error("OpenRouter also failed, using deterministic fallback.", orError);
+          errors.intelligence = "AI services unavailable, using rule-based analysis.";
+        }
+      } else {
+        console.warn(`Skipping OpenRouter fallback due to timeout risk. Elapsed: ${elapsed}ms`);
+        errors.intelligence = "AI timeout, using rule-based analysis.";
       }
     }
 

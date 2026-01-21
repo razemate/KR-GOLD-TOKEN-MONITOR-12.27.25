@@ -113,7 +113,7 @@ The 'confidence0to100' score must reflect the consistency between the price and 
 
   try {
     timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error("Gemini request timed out")), 12000)
+      setTimeout(() => reject(new Error("Gemini request timed out")), 6000)
     );
 
     generatePromise = model.generateContent({
