@@ -55,6 +55,7 @@ export interface TokenSnapshot {
 }
 
 export interface SnapshotMeta {
+  version?: string;
   generatedAt: number;
   isWeekend: boolean;
   refreshInterval: number;

@@ -145,6 +145,7 @@ export async function GET() {
 
     const response: SnapshotResponse = {
       meta: {
+        version: "1.1.0-proxy-fix",
         generatedAt: Date.now(),
         isWeekend,
         refreshInterval,
