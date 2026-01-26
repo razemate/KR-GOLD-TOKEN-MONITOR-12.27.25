@@ -148,28 +148,112 @@ The 'confidence0to100' score must reflect the consistency between the price and 
   }
 }
 
+import yahooFinance from 'yahoo-finance2';
+import * as cheerio from 'cheerio';
+
+// ... (existing imports)
+
 /**
- * Fallback spot price fetch if Gemini grounding fails to return a valid value.
- * Approved exception to blueprint for resilience.
+ * Fetch gold price from Yahoo Finance using yahoo-finance2 library.
+ * Symbol: GC=F (Gold Futures)
  */
-export async function getFallbackGoldSpotPrice(): Promise<number | null> {
+export async function fetchYahooGoldPrice(): Promise<number | null> {
   try {
-    const response = await fetch("https://data-asg.goldprice.org/dbXRates/USD", {
-      cache: "no-store"
-    });
-    if (!response.ok) return null;
-
-    const data = await response.json();
-    const value = Number(data?.items?.[0]?.xauPrice);
-
-    if (Number.isFinite(value) && value > 1000) {
-      return value;
+    const quote = await yahooFinance.quote('GC=F');
+    const price = quote.regularMarketPrice;
+    if (typeof price === 'number' && price > 1000) {
+      return price;
     }
-  } catch {
+    return null;
+  } catch (error) {
+    console.error("Yahoo Finance fetch failed:", error);
     return null;
   }
+}
 
-  return null;
+/**
+ * Scrape gold price from goldprice.org using Cheerio.
+ * User-requested scraping fallback.
+ */
+export async function scrapeGoldPriceOrg(): Promise<number | null> {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+
+    const response = await fetch("https://goldprice.org/spot-gold.html", {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+      },
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+
+    if (!response.ok) return null;
+
+    const html = await response.text();
+    const $ = cheerio.load(html);
+    
+    // Selectors based on goldprice.org structure (as of Jan 2026)
+    // The price is usually in a div with id="gold_price" or similar
+    // We try multiple common selectors
+    let priceText = $('#gold_price').text().trim();
+    if (!priceText) {
+       priceText = $('.price-card .price').first().text().trim();
+    }
+    
+    // Clean string: "$2,034.50" -> "2034.50"
+    const cleanPrice = priceText.replace(/[^0-9.]/g, '');
+    const price = parseFloat(cleanPrice);
+
+    if (Number.isFinite(price) && price > 1000) {
+      return price;
+    }
+    return null;
+  } catch (error) {
+    console.error("GoldPrice.org scrape failed:", error);
+    return null;
+  }
+}
+
+/**
+ * Fallback spot price fetch if Gemini grounding fails.
+ * Order: Yahoo Finance -> GoldPrice.org API -> GoldPrice.org Scrape
+ */
+export async function getFallbackGoldSpotPrice(): Promise<{ price: number | null; source: string }> {
+  // 1. Try Yahoo Finance (Preferred Fallback)
+  const yahooPrice = await fetchYahooGoldPrice();
+  if (yahooPrice) {
+    return { price: yahooPrice, source: 'Fallback: Yahoo Finance (GC=F)' };
+  }
+
+  // 2. Try GoldPrice.org API (Existing)
+  try {
+    const response = await fetch("https://data-asg.goldprice.org/dbXRates/USD", {
+      cache: "no-store",
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+      }
+    });
+    if (response.ok) {
+      const data = await response.json();
+      const value = Number(data?.items?.[0]?.xauPrice);
+      if (Number.isFinite(value) && value > 1000) {
+        return { price: value, source: 'Fallback: goldprice.org API' };
+      }
+    }
+  } catch (e) {
+    console.error("GoldPrice API failed:", e);
+  }
+
+  // 3. Try GoldPrice.org Scraper (Last Resort)
+  const scrapePrice = await scrapeGoldPriceOrg();
+  if (scrapePrice) {
+    return { price: scrapePrice, source: 'Fallback: goldprice.org Scrape' };
+  }
+
+  return { price: null, source: 'Unavailable' };
 }
 
 /**

@@ -45,10 +45,13 @@ This value is the **authoritative** gold price for the entire snapshot lifecycle
 
 **Implementation note (approved):** when using the official `@google/generative-ai` SDK, Google Search Grounding MUST be wired using the supported tool configuration (commonly `tools: [{ googleSearch: {} }]`). This is an SDK wiring detail only.
 
-**AMENDMENT 0.5-A - FALLBACK SPOT SOURCE (APPROVED)**  
-If Gemini grounding fails to return a valid spot price, the server may use a **single fallback** JSON source:  
-`https://data-asg.goldprice.org/dbXRates/USD`  
-Fallback is **only** allowed when Gemini returns null/invalid spot price. Gemini remains primary.
+**AMENDMENT 0.5-A - FALLBACK SPOT SOURCES (APPROVED)**  
+If Gemini grounding fails to return a valid spot price, the server may use the following fallbacks in order:
+1.  **Yahoo Finance** (Symbol: `GC=F`) via `yahoo-finance2` library.
+2.  **GoldPrice.org API**: `https://data-asg.goldprice.org/dbXRates/USD`
+3.  **GoldPrice.org Scraping**: Direct HTML scraping of `https://goldprice.org/spot-gold.html` (Authorized Exception to Section 12).
+
+**PROHIBITED**: The use of other tokens (e.g., XAUT, PAXG) as a proxy for the gold spot price is **STRICTLY FORBIDDEN**. No mock values. No proxy values.
 
 ### 0.6 SECRETS  
 `GEMINI_API_KEY` is required and server-side only.  
@@ -249,12 +252,13 @@ All other derived metrics remain deterministic and unchanged.
 
 ## 14. OUT OF SCOPE (CLARIFIED)
 
-- External gold price APIs (e.g., GoldAPI, Metals-API, Nasdaq feeds), except the approved fallback in 0.5-A  
+- External gold price APIs (e.g., GoldAPI, Metals-API, Nasdaq feeds), except the approved fallbacks in 0.5-A  
 - Client-side gold price fetching  
 - Cached or manually updated gold constants  
 - User-configurable spot prices
+- Use of token prices (XAUT, PAXG) as spot price proxies
 
-**Rationale:** Gemini 2.5 Flash with Google Search Grounding is the sole authoritative gold price source.
+**Rationale:** Gemini 2.5 Flash with Google Search Grounding is the sole authoritative gold price source, with specific external fallbacks allowed only on failure.
 
 ---
 

@@ -66,25 +66,18 @@ export async function GET() {
       }
 
       try {
-        spotPrice = await getFallbackGoldSpotPrice();
+        const fallback = await getFallbackGoldSpotPrice();
+        spotPrice = fallback.price;
         if (spotPrice !== null) {
-          spotSource = 'Fallback: goldprice.org';
+          spotSource = fallback.source;
         } else {
-          // Token Proxy Fallback (High Reliability)
-          // If external providers fail, use XAUT or PAXG price as a proxy for spot gold.
-          const proxyToken = tokens.find(t => t.id === 'tether-gold' || t.id === 'pax-gold');
-          if (proxyToken) {
-            spotPrice = proxyToken.current_price;
-            spotSource = `Fallback: ${proxyToken.symbol.toUpperCase()} Proxy`;
-          } else {
-            spotSource = 'Unavailable';
-            spotIssues.push("Fallback spot price unavailable");
-          }
+          spotSource = 'Unavailable';
+          spotIssues.push("All fallbacks (Yahoo, GoldPrice API, Scrape) failed");
         }
       } catch (e) {
-        console.error("Fallback gold spot price failed:", e);
+        console.error("Fallback sequence failed:", e);
         spotSource = 'Unavailable';
-        spotIssues.push("Fallback spot price fetch failed");
+        spotIssues.push("Fallback sequence error");
       }
 
       await appendSpotLog({
