@@ -130,7 +130,7 @@ The 'confidence0to100' score must reflect the consistency between the price and 
     const parsed = JSON.parse(responseText);
     const spotGoldUsd = Number(parsed.spotGoldUsd);
     const validSpotGoldUsd =
-      Number.isFinite(spotGoldUsd) && spotGoldUsd > 1000 && spotGoldUsd < 10000
+      Number.isFinite(spotGoldUsd) && spotGoldUsd > 1000
         ? spotGoldUsd
         : null;
     
@@ -162,7 +162,7 @@ export async function getFallbackGoldSpotPrice(): Promise<number | null> {
     const data = await response.json();
     const value = Number(data?.items?.[0]?.xauPrice);
 
-    if (Number.isFinite(value) && value > 1000 && value < 5000) {
+    if (Number.isFinite(value) && value > 1000) {
       return value;
     }
   } catch {
