@@ -168,9 +168,8 @@ export async function fetchYahooGoldPrice(): Promise<number | null> {
   
   for (const symbol of symbols) {
     try {
-      // @ts-ignore: yahoo-finance2 export quirk
-      const yf = new yahooFinance({ suppressNotices: ['yahooSurvey'] });
-      const quote = await yf.quote(symbol);
+      // Fix: yahoo-finance2 default export is the instance itself in v2+
+      const quote = await yahooFinance.quote(symbol);
       const price = quote.regularMarketPrice;
       if (typeof price === 'number' && price > 1000) {
         return price;
@@ -189,7 +188,7 @@ export async function fetchYahooGoldPrice(): Promise<number | null> {
 export async function scrapeGoldPriceOrg(): Promise<number | null> {
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // Increased to 8s
 
     const response = await fetch("https://goldprice.org/spot-gold.html", {
       headers: {
@@ -206,9 +205,7 @@ export async function scrapeGoldPriceOrg(): Promise<number | null> {
     const html = await response.text();
     const $ = cheerio.load(html);
     
-    // Selectors based on goldprice.org structure (as of Jan 2026)
-    // The price is usually in a div with id="gold_price" or similar
-    // We try multiple common selectors
+    // Updated selectors
     let priceText = $('#gold_price').text().trim();
     if (!priceText) {
        priceText = $('.price-card .price').first().text().trim();
@@ -230,41 +227,47 @@ export async function scrapeGoldPriceOrg(): Promise<number | null> {
 
 /**
  * Fallback spot price fetch if Gemini grounding fails.
- * Order: Yahoo Finance -> GoldPrice.org API -> GoldPrice.org Scrape
+ * Uses Promise.any to race multiple sources in parallel for speed and reliability.
  */
 export async function getFallbackGoldSpotPrice(): Promise<{ price: number | null; source: string }> {
-  // 1. Try Yahoo Finance (Preferred Fallback)
-  const yahooPrice = await fetchYahooGoldPrice();
-  if (yahooPrice) {
-    return { price: yahooPrice, source: 'Fallback: Yahoo Finance (GC=F)' };
-  }
+  const tryYahoo = async () => {
+    const price = await fetchYahooGoldPrice();
+    if (!price) throw new Error("Yahoo failed");
+    return { price, source: 'Fallback: Yahoo Finance' };
+  };
 
-  // 2. Try GoldPrice.org API (Existing)
-  try {
-    const response = await fetch("https://data-asg.goldprice.org/dbXRates/USD", {
-      cache: "no-store",
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
-      }
-    });
-    if (response.ok) {
+  const tryGoldPriceApi = async () => {
+    try {
+      const response = await fetch("https://data-asg.goldprice.org/dbXRates/USD", {
+        cache: "no-store",
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
+      });
+      if (!response.ok) throw new Error(`Status ${response.status}`);
       const data = await response.json();
       const value = Number(data?.items?.[0]?.xauPrice);
       if (Number.isFinite(value) && value > 1000) {
-        return { price: value, source: 'Fallback: goldprice.org API' };
+        return { price: value, source: 'Fallback: GoldPrice.org API' };
       }
+      throw new Error("Invalid data");
+    } catch (e) {
+      throw e;
     }
-  } catch (e) {
-    console.error("GoldPrice API failed:", e);
-  }
+  };
 
-  // 3. Try GoldPrice.org Scraper (Last Resort)
-  const scrapePrice = await scrapeGoldPriceOrg();
-  if (scrapePrice) {
-    return { price: scrapePrice, source: 'Fallback: goldprice.org Scrape' };
-  }
+  const tryScrape = async () => {
+    const price = await scrapeGoldPriceOrg();
+    if (!price) throw new Error("Scrape failed");
+    return { price, source: 'Fallback: GoldPrice.org Scrape' };
+  };
 
-  return { price: null, source: 'Unavailable' };
+  try {
+    // Race all sources: First one to succeed wins.
+    // This avoids the 10s serverless timeout issue of sequential fetching.
+    return await Promise.any([tryGoldPriceApi(), tryYahoo(), tryScrape()]);
+  } catch (aggregateError) {
+    console.error("All fallbacks failed:", aggregateError);
+    return { price: null, source: 'Unavailable' };
+  }
 }
 
 /**
