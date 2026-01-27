@@ -34,6 +34,7 @@ export function normalizeTokenData(token: RawTokenData): TokenMarket {
     low_24h: token.low_24h || 0,
     ath: token.ath || 0,
     atl: token.atl || 0,
+    sparkline_in_7d: (token.sparkline_in_7d as { price: number[] }) || undefined,
   };
 }
 

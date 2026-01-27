@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-import { appendFile } from 'fs/promises';
-import path from 'path';
-import { fetchTopGoldTokens, fetchAllCharts } from '@/lib/coingecko';
+import { fetchTopGoldTokens } from '@/lib/coingecko';
 import { computeMetrics } from '@/lib/compute';
 import { normalizeTokenData } from '@/lib/normalize';
 import { generateSnapshotIntelligence, getFallbackGoldSpotPrice, getFallbackIntelligence } from '@/lib/gemini';
@@ -13,16 +11,6 @@ import { SnapshotResponse, TokenSnapshot, MarketIntelItem } from '@/lib/types';
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
 
-async function appendSpotLog(entry: Record<string, unknown>) {
-  try {
-    const logPath = path.join(process.cwd(), 'spot-price-debug.log');
-    const line = `${JSON.stringify(entry)}\n`;
-    await appendFile(logPath, line, { encoding: 'utf8' });
-  } catch (error) {
-    console.error("Failed to write spot price log:", error);
-  }
-}
-
 export async function GET() {
   const startTime = Date.now();
   const { isWeekend, refreshInterval, cacheHeader } = getRefreshCadence();
@@ -32,7 +20,25 @@ export async function GET() {
     // 1. Fetch Markets
     const rawTokens = await fetchTopGoldTokens();
     const tokens = rawTokens.map(normalizeTokenData);
-    const charts = await fetchAllCharts(tokens);
+    
+    // Convert sparkline data to chart points
+    // CoinGecko sparkline is hourly over 7 days (~168 points). Last point is "now".
+    const charts: Record<string, import('@/lib/types').TokenChartPoint[]> = {};
+    const now = Date.now();
+    const ONE_HOUR = 3600 * 1000;
+    
+    tokens.forEach(token => {
+      if (token.sparkline_in_7d && Array.isArray(token.sparkline_in_7d.price)) {
+        const prices = token.sparkline_in_7d.price;
+        const endIndex = prices.length - 1;
+        charts[token.id] = prices.map((price, i) => ({
+          timestamp: now - (endIndex - i) * ONE_HOUR,
+          price
+        }));
+      } else {
+        charts[token.id] = [];
+      }
+    });
 
     // 2. Pre-compute prompt metrics (non-peg fields may be UNKNOWN until spot price is available)
     const promptMetricsMap = Object.fromEntries(
@@ -79,14 +85,6 @@ export async function GET() {
         spotSource = 'Unavailable';
         spotIssues.push("Fallback sequence error");
       }
-
-      await appendSpotLog({
-        timestamp: new Date().toISOString(),
-        spotSource,
-        spotPrice,
-        geminiSucceeded,
-        issues: spotIssues
-      });
 
       if (spotPrice === null && spotIssues.length > 0) {
         errors.spotPrice = spotIssues.join(" | ");

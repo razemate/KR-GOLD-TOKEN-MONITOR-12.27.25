@@ -13,6 +13,9 @@ export interface TokenMarket {
   low_24h: number;
   ath?: number;
   atl?: number;
+  sparkline_in_7d?: {
+    price: number[];
+  };
 }
 
 export interface TokenChartPoint {

@@ -13,7 +13,7 @@ function getCoingeckoHeaders() {
 }
 
 export async function fetchTopGoldTokens(): Promise<TokenMarket[]> {
-  const url = `${COINGECKO_API}/coins/markets?vs_currency=usd&category=tokenized-gold&order=market_cap_desc&per_page=10&page=1&sparkline=false&price_change_percentage=24h`;
+  const url = `${COINGECKO_API}/coins/markets?vs_currency=usd&category=tokenized-gold&order=market_cap_desc&per_page=10&page=1&sparkline=true&price_change_percentage=24h`;
   try {
     const response = await fetchWithRetry(url, { headers: getCoingeckoHeaders() });
     const data = await response.json();
@@ -32,9 +32,22 @@ export async function fetchTokenChart(tokenId: string): Promise<TokenChartPoint[
   try {
     const url = `${COINGECKO_API}/coins/${tokenId}/market_chart?vs_currency=usd&days=7`;
     const response = await fetchWithRetry(url, { headers: getCoingeckoHeaders() }, 1, 2000); 
-    const data = await response.json();
-    if (!data.prices || !Array.isArray(data.prices)) return [];
-    return data.prices.map((p: [number, number]) => ({ timestamp: p[0], price: p[1] }));
+    
+    // Check for rate limit response explicitly
+    if (response.status === 429) {
+       console.warn(`Throttled while fetching chart for ${tokenId}`);
+       return [];
+    }
+
+    const text = await response.text();
+    try {
+        const data = JSON.parse(text);
+        if (!data.prices || !Array.isArray(data.prices)) return [];
+        return data.prices.map((p: [number, number]) => ({ timestamp: p[0], price: p[1] }));
+    } catch (parseError) {
+        console.warn(`Failed to parse chart JSON for ${tokenId}:`, text.slice(0, 100));
+        return [];
+    }
   } catch (e) {
     console.error(`Failed to fetch chart for ${tokenId}:`, e);
     return [];
@@ -43,7 +56,7 @@ export async function fetchTokenChart(tokenId: string): Promise<TokenChartPoint[
 
 export async function fetchAllCharts(tokens: TokenMarket[]): Promise<Record<string, TokenChartPoint[]>> {
   const charts: Record<string, TokenChartPoint[]> = {};
-  const BATCH_SIZE = 3; // Blueprint §7: Concurrency capped at 2–3
+  const BATCH_SIZE = 2; // Reduced from 3 to 2 for stricter rate limiting on Vercel
 
   for (let i = 0; i < tokens.length; i += BATCH_SIZE) {
     const batch = tokens.slice(i, i + BATCH_SIZE);
@@ -60,9 +73,9 @@ export async function fetchAllCharts(tokens: TokenMarket[]): Promise<Record<stri
       charts[id] = chart;
     });
 
-    // Minimal delay between batches to respect rate limits
+    // Increased delay between batches to respect rate limits
     if (i + BATCH_SIZE < tokens.length) {
-      await delay(1000); 
+      await delay(1200); 
     }
   }
   

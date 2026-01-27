@@ -116,17 +116,23 @@ The 'confidence0to100' score must reflect the consistency between the price and 
       setTimeout(() => reject(new Error("Gemini request timed out")), 6000)
     );
 
+    // Prompt engineering for JSON response since Grounding tools often conflict with responseMimeType: 'application/json'
+    const promptWithJsonInstruction = `${prompt}
+
+    CRITICAL INSTRUCTION: You must return the result as a valid JSON object strictly adhering to the schema defined above. Do not include markdown code blocks (like \`\`\`json). Just the raw JSON string.`;
+
     generatePromise = model.generateContent({
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      contents: [{ role: "user", parts: [{ text: promptWithJsonInstruction }] }],
       tools: [{ googleSearch: {} }],
-      generationConfig: {
-        responseMimeType: "application/json",
-        responseSchema: snapshotSchema,
-      }
+      // Remove responseMimeType: "application/json" to avoid 400 Bad Request with Tools
     });
 
     result = await Promise.race([generatePromise, timeoutPromise]);
-    const responseText = result.response.text();
+    let responseText = result.response.text();
+    
+    // Clean up potential markdown code blocks if the model ignores the instruction
+    responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+
     const parsed = JSON.parse(responseText);
     const spotGoldUsd = Number(parsed.spotGoldUsd);
     const validSpotGoldUsd =
@@ -159,7 +165,9 @@ import * as cheerio from 'cheerio';
  */
 export async function fetchYahooGoldPrice(): Promise<number | null> {
   try {
-    const quote = await yahooFinance.quote('GC=F');
+    // @ts-ignore: yahoo-finance2 export quirk in some ESM environments requires instantiation
+    const yf = new yahooFinance({ suppressNotices: ['yahooSurvey'] });
+    const quote = await yf.quote('GC=F');
     const price = quote.regularMarketPrice;
     if (typeof price === 'number' && price > 1000) {
       return price;
