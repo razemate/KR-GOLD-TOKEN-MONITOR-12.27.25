@@ -7,6 +7,15 @@ const __dirname = path.dirname(__filename);
 
 const nextConfig = {
   basePath: '/gold-token-monitor',
+  async redirects() {
+    return [
+      {
+        source: '/',
+        destination: '/gold-token-monitor',
+        permanent: false,
+      },
+    ];
+  },
   turbopack: {
     root: __dirname,
   },

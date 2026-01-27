@@ -115,7 +115,7 @@ export default function Dashboard() {
         <div className="flex items-center gap-3 lg:gap-4">
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="lg:hidden p-2 -ml-2 text-slate-400 hover:text-white transition-colors"
+            className="md:hidden p-2 -ml-2 text-slate-400 hover:text-white transition-colors"
             aria-label={isMenuOpen ? "Close menu" : "Open menu"}
           >
             {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -172,14 +172,14 @@ export default function Dashboard() {
         {/* Mobile Sidebar Overlay */}
         {isMenuOpen && (
           <div
-            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+            className="fixed inset-0 bg-black/50 z-40 md:hidden"
             onClick={() => setIsMenuOpen(false)}
           />
         )}
 
         {/* Sidebar - Renders shell immediately */}
         <div className={`
-          fixed lg:static top-[73px] lg:top-0 bottom-0 left-0 z-40 w-[85vw] sm:w-80 lg:w-72 xl:w-80 transform transition-transform duration-300 ease-in-out bg-white dark:bg-slate-900 lg:translate-x-0 border-r border-slate-200 dark:border-slate-800
+          fixed md:static top-[73px] lg:top-0 bottom-0 left-0 z-40 w-[85vw] sm:w-80 lg:w-72 xl:w-80 transform transition-transform duration-300 ease-in-out bg-white dark:bg-slate-900 md:translate-x-0 border-r border-slate-200 dark:border-slate-800
           ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}
         `}>
           <TokenList
