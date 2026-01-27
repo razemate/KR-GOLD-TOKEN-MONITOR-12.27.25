@@ -4,8 +4,9 @@ const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
 // Blueprint Step 4: Hard-coded fallback models
 const FALLBACK_MODELS = [
-  'xiaomi/mimo-v2-flash:free',
-  'meta-llama/llama-3.3-70b-instruct:free'
+  'google/gemini-2.0-flash-lite-preview-02-05:free',
+  'meta-llama/llama-3.2-3b-instruct:free',
+  'liquid/lfm-40b:free'
 ];
 
 /**
@@ -54,7 +55,7 @@ export async function generateOpenRouterIntelligence(
       console.log(`Attempting OpenRouter fallback with model: ${model}`);
       
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s timeout per model
+      const timeoutId = setTimeout(() => controller.abort(), 2500); // 2.5s timeout per model
 
       try {
         const response = await fetch(OPENROUTER_API_URL, {

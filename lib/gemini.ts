@@ -113,7 +113,7 @@ The 'confidence0to100' score must reflect the consistency between the price and 
 
   try {
     timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error("Gemini request timed out")), 6000)
+      setTimeout(() => reject(new Error("Gemini request timed out")), 4500)
     );
 
     // Prompt engineering for JSON response since Grounding tools often conflict with responseMimeType: 'application/json'
@@ -164,19 +164,22 @@ import * as cheerio from 'cheerio';
  * Symbol: GC=F (Gold Futures)
  */
 export async function fetchYahooGoldPrice(): Promise<number | null> {
-  try {
-    // @ts-ignore: yahoo-finance2 export quirk in some ESM environments requires instantiation
-    const yf = new yahooFinance({ suppressNotices: ['yahooSurvey'] });
-    const quote = await yf.quote('GC=F');
-    const price = quote.regularMarketPrice;
-    if (typeof price === 'number' && price > 1000) {
-      return price;
+  const symbols = ['GC=F', 'XAUUSD=X', 'XAU=X'];
+  
+  for (const symbol of symbols) {
+    try {
+      // @ts-ignore: yahoo-finance2 export quirk
+      const yf = new yahooFinance({ suppressNotices: ['yahooSurvey'] });
+      const quote = await yf.quote(symbol);
+      const price = quote.regularMarketPrice;
+      if (typeof price === 'number' && price > 1000) {
+        return price;
+      }
+    } catch (error) {
+      console.warn(`Yahoo Finance fetch failed for ${symbol}:`, error instanceof Error ? error.message : String(error));
     }
-    return null;
-  } catch (error) {
-    console.error("Yahoo Finance fetch failed:", error);
-    return null;
   }
+  return null;
 }
 
 /**
