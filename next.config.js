@@ -9,6 +9,8 @@ const nextConfig = {
   turbopack: {
     root: __dirname,
   },
+  basePath: '/gold-token-monitor',
+  images: {},
 };
 
 export default nextConfig;
