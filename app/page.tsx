@@ -48,7 +48,7 @@ export default function Dashboard() {
         setError(null);
 
         const startTime = Date.now();
-        const res = await fetch("/gold-token-monitor/api/snapshot");
+        const res = await fetch("/api/snapshot");
         const duration = Date.now() - startTime;
         console.log(`Snapshot fetched in ${duration}ms`);
 

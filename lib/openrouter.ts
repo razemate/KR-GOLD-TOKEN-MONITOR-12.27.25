@@ -62,7 +62,7 @@ export async function generateOpenRouterIntelligence(
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${apiKey}`,
-            'HTTP-Referer': 'https://kr-gold-token-monitor-1.vercel.app',
+            'HTTP-Referer': 'https://gold.katusaresearch.com',
             'X-Title': 'Gold Token Monitor',
             'Content-Type': 'application/json'
           },
