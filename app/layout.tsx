@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Montserrat } from "next/font/google";
 import "@/styles/globals.css";
+import Analytics from "@/components/Analytics";
 
 const montserrat = Montserrat({ 
   subsets: ["latin"],
@@ -38,6 +39,7 @@ export default function RootLayout({
         </head>
       <body className={`${montserrat.className} antialiased overflow-x-hidden transition-colors duration-300 tracking-tight`}>
         {children}
+        <Analytics />
       </body>
     </html>
   );
