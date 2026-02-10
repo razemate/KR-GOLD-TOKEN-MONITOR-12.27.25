@@ -62,7 +62,7 @@ export async function generateOpenRouterIntelligence(
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${apiKey}`,
-            'HTTP-Referer': 'https://subscribers.katusaresearch.com/gold-token-monitor/',
+            'HTTP-Referer': 'https://gold.katusaresearch.com',
             'X-Title': 'Gold Token Monitor',
             'Content-Type': 'application/json'
           },
