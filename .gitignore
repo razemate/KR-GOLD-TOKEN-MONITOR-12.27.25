@@ -27,3 +27,6 @@ Backup
 
 .vercel
 .env*.local
+
+*.bak
+.trae/
