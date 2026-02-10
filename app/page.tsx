@@ -22,21 +22,18 @@ export default function Dashboard() {
 
   // Theme toggle function
   const toggleTheme = () => {
-    const newIsDark = !isDark;
-    setIsDark(newIsDark);
+    setIsDark(!isDark);
     if (typeof window !== 'undefined') {
-      document.documentElement.classList.toggle('dark', newIsDark);
-      localStorage.setItem('theme', newIsDark ? 'dark' : 'light');
+      document.documentElement.classList.toggle('dark', !isDark);
     }
   };
 
-  // Initialize theme based on local storage (default to light)
+  // Initialize theme based on system preference
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const storedTheme = localStorage.getItem('theme');
-      const shouldBeDark = storedTheme === 'dark';
-      setIsDark(shouldBeDark);
-      document.documentElement.classList.toggle('dark', shouldBeDark);
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      setIsDark(prefersDark);
+      document.documentElement.classList.toggle('dark', prefersDark);
     }
   }, []);
 
