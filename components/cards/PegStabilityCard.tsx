@@ -36,7 +36,7 @@ const PegStabilityCard: React.FC<Props> = ({ metrics, isLoading = false }) => {
   else statusColorClass = 'bg-red-500 text-white';
 
   const devValueColor = pegDeviation === null || pegDeviation === undefined
-    ? 'text-slate-400'
+    ? 'text-slate-600'
     : Math.abs(pegDeviation) <= 0.20 
       ? 'text-green-600 dark:text-green-400' 
       : Math.abs(pegDeviation) <= 0.75 
@@ -48,30 +48,30 @@ const PegStabilityCard: React.FC<Props> = ({ metrics, isLoading = false }) => {
       <div className="flex-1">
         <div className="mb-4">
           <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-200 uppercase transition-colors duration-300">Peg Stability</h3>
-          <p className="text-[13px] text-slate-600 dark:text-slate-400 mt-1 leading-snug">
+          <p className="text-[13px] text-slate-700 dark:text-slate-300 mt-1 leading-snug">
             Measures how closely the token price tracks the spot gold price. Lower deviation indicates a healthier peg.
           </p>
         </div>
         
         <div className="grid grid-cols-[1fr_auto] gap-y-4 gap-x-2 items-end">
-          <span className="text-xs text-slate-500 dark:text-slate-400 pb-0.5 transition-colors duration-300">Deviation</span>
+          <span className="text-xs text-slate-700 dark:text-slate-300 pb-0.5 transition-colors duration-300">Deviation</span>
           <span className={`font-mono font-bold text-right ${devValueColor} transition-colors duration-300`}>
             {pegDeviation !== null && pegDeviation !== undefined ? `${pegDeviation > 0 ? '+' : ''}${pegDeviation.toFixed(3)}%` : 'N/A'}
           </span>
         </div>
         
         <div className="mt-2 mb-2">
-           <p className="text-[10px] text-slate-400 dark:text-slate-500">Within +/-0.20% target peg range</p>
+           <p className="text-[10px] text-slate-600 dark:text-slate-300">Within +/-0.20% target peg range</p>
         </div>
 
         <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between transition-colors duration-300">
-          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 transition-colors duration-300">STATUS</span>
+          <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 transition-colors duration-300">STATUS</span>
           <span className={`text-xs font-bold px-2 py-1 rounded shadow-sm ${statusColorClass}`}>
             {pegStatus}
           </span>
         </div>
         <div className="mt-2">
-          <p className="text-[10px] text-slate-400 dark:text-slate-500">
+          <p className="text-[10px] text-slate-600 dark:text-slate-300">
             Legend: Tight &lt;= 0.20%, Normal &lt;= 0.75%, Stressed &gt; 0.75%
           </p>
         </div>

@@ -39,28 +39,28 @@ const LiquidityHealthCard: React.FC<Props> = ({ metrics, isLoading = false }) =>
       <div className="flex-1">
         <div className="mb-4">
           <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-200 uppercase transition-colors duration-300">Liquidity Health</h3>
-          <p className="text-[13px] text-slate-600 dark:text-slate-400 mt-1 leading-snug">
+          <p className="text-[13px] text-slate-700 dark:text-slate-300 mt-1 leading-snug">
             Indicates the ease of buying or selling the token without causing significant price impact.
           </p>
         </div>
 
         <div className="grid grid-cols-[1fr_auto] gap-y-4 gap-x-2 items-end">
-          <span className="text-xs text-slate-500 dark:text-slate-400 pb-0.5 transition-colors duration-300">Turnover Rate</span>
+          <span className="text-xs text-slate-700 dark:text-slate-300 pb-0.5 transition-colors duration-300">Turnover Rate</span>
           <span className={`font-mono font-bold text-right ${colorClass} transition-colors duration-300`}>{liquidityTurnover.toFixed(2)}%</span>
         </div>
 
         <div className="mt-2 mb-2">
-           <p className="text-[10px] text-slate-400 dark:text-slate-500">Supports efficient entry and exit at scale</p>
+           <p className="text-[10px] text-slate-600 dark:text-slate-300">Supports efficient entry and exit at scale</p>
         </div>
 
          <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between transition-colors duration-300">
-          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 transition-colors duration-300">TIER</span>
+          <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 transition-colors duration-300">TIER</span>
            <span className={`text-sm font-bold ${colorClass} transition-colors duration-300`}>
             {liquidityTier}
           </span>
         </div>
         <div className="mt-2">
-          <p className="text-[10px] text-slate-400 dark:text-slate-500">
+          <p className="text-[10px] text-slate-600 dark:text-slate-300">
             Legend: Deep &gt;= 15%, Tradable &gt;= 5%, Thin &lt; 5%
           </p>
         </div>

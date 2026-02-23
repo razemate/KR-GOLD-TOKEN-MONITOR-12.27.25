@@ -26,19 +26,19 @@ const TokenRow: React.FC<Props> = ({ token, isSelected, onSelect }) => {
           />
         </div>
         <div className="text-left flex-1 min-w-0">
-          <p className="text-sm font-bold text-slate-900 dark:text-slate-100 transition-colors duration-300 truncate">
+          <p className="text-[15.5px] font-bold text-slate-900 dark:text-slate-100 transition-colors duration-300 truncate">
             {token.symbol.toUpperCase()}
           </p>
-          <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate transition-colors duration-300">
+          <p className="text-[11.5px] text-slate-700 dark:text-slate-300 truncate transition-colors duration-300">
             {token.name}
           </p>
         </div>
       </div>
       <div className="text-right flex-shrink-0 ml-3">
-        <p className="text-sm font-mono font-bold text-slate-900 dark:text-slate-100 transition-colors duration-300">
+        <p className="text-[15.5px] font-mono font-bold text-slate-900 dark:text-slate-100 transition-colors duration-300">
           ${token.current_price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </p>
-        <p className={`text-xs font-bold ${token.price_change_percentage_24h >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'} transition-colors duration-300`}>
+        <p className={`text-[13.5px] font-bold ${token.price_change_percentage_24h >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'} transition-colors duration-300`}>
           {token.price_change_percentage_24h >= 0 ? '+' : ''}{token.price_change_percentage_24h.toFixed(2)}%
         </p>
       </div>

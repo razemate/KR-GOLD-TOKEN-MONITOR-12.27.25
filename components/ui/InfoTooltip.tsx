@@ -23,7 +23,7 @@ const InfoTooltip: React.FC<InfoTooltipProps> = ({ content, position = 'center' 
   return (
     <div className="relative inline-block ml-2 group">
       <button 
-        className="text-slate-500 hover:text-gold-500 transition-colors focus:outline-none"
+        className="text-slate-700 hover:text-gold-500 transition-colors focus:outline-none"
         onMouseEnter={() => setIsVisible(true)}
         onMouseLeave={() => setIsVisible(false)}
         onFocus={() => setIsVisible(true)}

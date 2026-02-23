@@ -10,7 +10,15 @@ import LiquidityHealthCard from "@/components/cards/LiquidityHealthCard";
 import BackingScaleCard from "@/components/cards/BackingScaleCard";
 import RedemptionTrustCard from "@/components/cards/RedemptionTrustCard";
 import MarketIntelCard from "@/components/cards/MarketIntelCard";
-import { SnapshotResponse } from "@/lib/types";
+import { SnapshotResponse, TokenChartPoint } from "@/lib/types";
+import { CHART_RANGES, ChartRangeKey, getChartRangeLabel } from "@/lib/chart-range";
+
+type ChartMetric = "price" | "marketCap";
+
+const CHART_METRICS: { key: ChartMetric; label: string }[] = [
+  { key: "price", label: "Price" },
+  { key: "marketCap", label: "Market Cap" },
+];
 
 export default function Dashboard() {
   const [snapshot, setSnapshot] = useState<SnapshotResponse | null>(null);
@@ -19,6 +27,11 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDark, setIsDark] = useState(false);
+  const [selectedMetric, setSelectedMetric] = useState<ChartMetric>("price");
+  const [selectedRange, setSelectedRange] = useState<ChartRangeKey>('7d');
+  const [rangeChartData, setRangeChartData] = useState<TokenChartPoint[] | null>(null);
+  const [rangeChartLoading, setRangeChartLoading] = useState(false);
+  const [rangeChartError, setRangeChartError] = useState<string | null>(null);
 
   // Theme toggle function
   const toggleTheme = () => {
@@ -103,13 +116,80 @@ export default function Dashboard() {
   const selectedSnapshot = tokens.find(t => t.token.id === activeTokenId) || tokens[0];
   const chartData = selectedSnapshot?.chart || [];
   const spotSourceLabel = snapshot?.meta?.goldSpotSource || 'Source unavailable';
+  const selectedRangeLabel = getChartRangeLabel(selectedRange);
+  const selectedMetricLabel = selectedMetric === "price" ? "price" : "market cap";
+  const shouldFetchChart = Boolean(activeTokenId) && !(selectedMetric === "price" && selectedRange === "7d");
+  const isLoading = loading && !snapshot;
+
+  useEffect(() => {
+    if (!activeTokenId) {
+      setRangeChartData([]);
+      setRangeChartLoading(false);
+      setRangeChartError(null);
+      return;
+    }
+
+    if (!shouldFetchChart) {
+      setRangeChartData(null);
+      setRangeChartLoading(false);
+      setRangeChartError(null);
+      return;
+    }
+
+    const controller = new AbortController();
+
+    async function fetchRangeChart() {
+      try {
+        setRangeChartLoading(true);
+        setRangeChartError(null);
+        setRangeChartData(null);
+
+        const params = new URLSearchParams({
+          tokenId: activeTokenId,
+          range: selectedRange,
+          metric: selectedMetric,
+        });
+        const response = await fetch(`/api/chart?${params.toString()}`, {
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to load ${selectedRangeLabel} ${selectedMetricLabel} chart`);
+        }
+
+        const payload = (await response.json()) as { data?: TokenChartPoint[] };
+        setRangeChartData(Array.isArray(payload.data) ? payload.data : []);
+      } catch (err: unknown) {
+        if (err instanceof DOMException && err.name === 'AbortError') return;
+        console.error(err);
+        const message = err instanceof Error ? err.message : 'Failed to load chart';
+        setRangeChartError(message);
+        setRangeChartData([]);
+      } finally {
+        if (!controller.signal.aborted) {
+          setRangeChartLoading(false);
+        }
+      }
+    }
+
+    fetchRangeChart();
+
+    return () => controller.abort();
+  }, [activeTokenId, selectedRange, selectedMetric, selectedRangeLabel, selectedMetricLabel, shouldFetchChart]);
+
+  const displayedChartData = useMemo(() => {
+    if (!shouldFetchChart) return chartData;
+    if (rangeChartData && rangeChartData.length > 0) return rangeChartData;
+    if (rangeChartError && selectedMetric === "price") return chartData;
+    return rangeChartData || [];
+  }, [shouldFetchChart, chartData, rangeChartData, rangeChartError, selectedMetric]);
+
+  const chartIsLoading = isLoading || (shouldFetchChart && rangeChartLoading);
 
   const handleTokenSelect = (id: string) => {
     setSelectedTokenId(id);
     setIsMenuOpen(false);
   };
-
-  const isLoading = loading && !snapshot;
 
   return (
     <div className={`flex flex-col h-screen overflow-hidden bg-white dark:bg-slate-950 transition-colors duration-300 ${isDark ? 'dark' : ''}`}>
@@ -118,7 +198,7 @@ export default function Dashboard() {
         <div className="flex items-center gap-3 lg:gap-4">
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="md:hidden p-2 -ml-2 text-slate-400 hover:text-white transition-colors"
+            className="md:hidden p-2 -ml-2 text-slate-600 hover:text-white transition-colors"
             aria-label={isMenuOpen ? "Close menu" : "Open menu"}
           >
             {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -148,7 +228,7 @@ export default function Dashboard() {
           {/* Blueprint Step 5: Gold Spot Price Display */}
           <div className="hidden sm:flex flex-col items-end">
             <span
-              className="text-[10px] lg:text-xs font-semibold text-slate-400 uppercase tracking-wider"
+              className="text-[10px] lg:text-xs font-semibold text-slate-600 uppercase tracking-wider"
               title={spotSourceLabel}
             >
               Gold Spot
@@ -163,7 +243,7 @@ export default function Dashboard() {
 
           <button
             onClick={toggleTheme}
-          className="p-2 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white transition-all duration-300"
+          className="p-2 rounded-full hover:bg-slate-800 text-slate-600 hover:text-white transition-all duration-300"
           aria-label="Toggle theme"
         >
           {isDark ? <Sun className="w-5 h-5 lg:w-6 lg:h-6" /> : <Moon className="w-5 h-5 lg:w-6 lg:h-6" />}
@@ -198,11 +278,11 @@ export default function Dashboard() {
           {error && !snapshot ? (
             <div className="flex flex-col items-center justify-center h-full">
               <h1 className="text-2xl font-semibold text-red-500 mb-4">Connection Error</h1>
-              <p className="text-slate-600 dark:text-slate-400 mb-6">{error}</p>
+              <p className="text-slate-700 dark:text-slate-300 mb-6">{error}</p>
             </div>
           ) : (
             <>
-              <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-200 dark:border-slate-800 pb-6 gap-4 transition-colors duration-300">
+              <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-200 dark:border-slate-800 pb-3 gap-4 transition-colors duration-300">
             <div className="flex items-center">
               {isLoading || !selectedSnapshot ? (
                 <>
@@ -222,7 +302,7 @@ export default function Dashboard() {
                   </div>
                   <div className="flex flex-col justify-center ml-3 lg:ml-5">
                     <h1 className="text-xl lg:text-3xl font-bold tracking-tight text-slate-900 dark:text-white transition-colors duration-300">
-                      {selectedSnapshot.token.name} <span className="text-slate-400 dark:text-slate-500 font-normal ml-2 text-xs lg:text-sm">({selectedSnapshot.token.symbol.toUpperCase()})</span>
+                      {selectedSnapshot.token.name} <span className="text-slate-600 dark:text-slate-300 font-normal ml-2 text-xs lg:text-sm">({selectedSnapshot.token.symbol.toUpperCase()})</span>
                     </h1>
                   </div>
                 </>
@@ -246,7 +326,7 @@ export default function Dashboard() {
                         ({selectedSnapshot.token.price_change_percentage_24h >= 0 ? '+' : ''}{selectedSnapshot.token.price_change_percentage_24h.toFixed(2)}% 24h)
                       </span>
                     </div>
-                  <div className="text-sm lg:text-base font-medium text-slate-500 dark:text-slate-400 mt-1 transition-colors duration-300">
+                  <div className="text-sm lg:text-base font-medium text-slate-700 dark:text-slate-300 mt-1 transition-colors duration-300">
                       Market Cap: <span className="text-black dark:text-white">${(selectedSnapshot.token.market_cap / 1000000).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}M</span>
                     </div>
                 </div>
@@ -256,10 +336,67 @@ export default function Dashboard() {
 
           {/* Chart Section */}
           <section>
+            <div className="-mt-4 lg:-mt-6 mb-3 flex flex-wrap items-center justify-between gap-3">
+              <div className="inline-flex items-center gap-1 rounded-xl border border-slate-300 bg-slate-200/90 dark:border-slate-700 dark:bg-slate-800 p-1">
+                {CHART_METRICS.map((metric) => {
+                  const isActive = selectedMetric === metric.key;
+                  return (
+                    <button
+                      key={metric.key}
+                      type="button"
+                      onClick={() => {
+                        setSelectedMetric(metric.key);
+                        setSelectedRange("7d");
+                      }}
+                      className={`px-3.5 py-1 rounded-full border text-sm font-semibold transition-all ${
+                        isActive
+                          ? "bg-gold-500 border-amber-300/90 text-slate-950 shadow-sm"
+                          : "border-transparent text-slate-700 dark:text-slate-200 hover:bg-white/80 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white"
+                      }`}
+                      aria-pressed={isActive}
+                    >
+                      {metric.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="inline-flex flex-wrap items-center gap-1 rounded-xl border border-slate-300 bg-slate-200/90 dark:border-slate-700 dark:bg-slate-800 p-1">
+                {CHART_RANGES.map((range) => {
+                  const isActive = selectedRange === range.key;
+                  return (
+                    <button
+                      key={range.key}
+                      type="button"
+                      onClick={() => setSelectedRange(range.key)}
+                      className={`px-3.5 py-1 rounded-full border text-sm font-semibold transition-all ${
+                        isActive
+                          ? 'bg-gold-500 border-amber-300/90 text-slate-950 shadow-sm'
+                          : 'border-transparent text-slate-700 dark:text-slate-200 hover:bg-white/80 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
+                      }`}
+                      aria-pressed={isActive}
+                    >
+                      {range.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {rangeChartError && shouldFetchChart && (
+              <p className="mb-3 text-xs text-amber-600 dark:text-amber-400">
+                {selectedMetric === "price"
+                  ? `Unable to load ${selectedRangeLabel} price chart data. Showing 7D fallback.`
+                  : `Unable to load ${selectedRangeLabel} market cap chart data.`}
+              </p>
+            )}
+
             <SevenDayChart 
-              data={chartData} 
-              isLoading={isLoading} 
-              spotPrice={snapshot?.meta?.goldSpotUsd} 
+              data={displayedChartData} 
+              isLoading={chartIsLoading} 
+              spotPrice={selectedMetric === "price" ? snapshot?.meta?.goldSpotUsd : null}
+              rangeLabel={selectedRangeLabel}
+              seriesType={selectedMetric}
             />
           </section>
 

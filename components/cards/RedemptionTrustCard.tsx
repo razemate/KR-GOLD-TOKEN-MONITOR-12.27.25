@@ -147,7 +147,7 @@ const RedemptionTrustCard: React.FC<Props> = ({ symbol, isLoading = false }) => 
       <div className="flex-1">
         <div className="mb-4">
           <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-200 uppercase transition-colors duration-300">Redemption & Trust</h3>
-          <p className="text-[13px] text-slate-600 dark:text-slate-400 mt-1 leading-snug">
+          <p className="text-[13px] text-slate-700 dark:text-slate-300 mt-1 leading-snug">
             Checklist of key institutional risks. Not financial advice.
           </p>
         </div>
@@ -155,7 +155,7 @@ const RedemptionTrustCard: React.FC<Props> = ({ symbol, isLoading = false }) => 
         <div className="space-y-4 text-xs md:text-[13px]">
           
           <div className="flex justify-between items-center border-b border-slate-50 dark:border-slate-800/50 pb-2">
-            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium">
+            <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-medium">
               <Landmark className="w-4 h-4" />
               <span>Issuer</span>
             </div>
@@ -174,7 +174,7 @@ const RedemptionTrustCard: React.FC<Props> = ({ symbol, isLoading = false }) => 
           </div>
 
           <div className="flex justify-between items-center border-b border-slate-50 dark:border-slate-800/50 pb-2">
-            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium">
+            <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-medium">
               <ShieldCheck className="w-4 h-4" />
               <span>Custody</span>
             </div>
@@ -193,7 +193,7 @@ const RedemptionTrustCard: React.FC<Props> = ({ symbol, isLoading = false }) => 
           </div>
 
           <div className="flex justify-between items-center border-b border-slate-50 dark:border-slate-800/50 pb-2">
-            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium">
+            <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-medium">
               <RefreshCw className="w-4 h-4" />
               <span>Redemption</span>
             </div>
@@ -212,7 +212,7 @@ const RedemptionTrustCard: React.FC<Props> = ({ symbol, isLoading = false }) => 
           </div>
 
            <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium">
+            <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-medium">
               <AlertTriangle className="w-4 h-4 text-rose-500" />
               <span>Freeze Risk</span>
             </div>
