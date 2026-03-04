@@ -316,7 +316,7 @@ export default function Dashboard() {
                 </div>
               ) : selectedSnapshot ? (
                 <div className="flex flex-col items-start sm:items-end">
-                    <div className="text-2xl lg:text-4xl font-bold tracking-tight text-black dark:text-white transition-colors duration-300">
+                    <div className="text-lg lg:text-2xl font-bold tracking-tight text-black dark:text-white transition-colors duration-300">
                       ${selectedSnapshot.token.current_price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       <span className={`text-sm lg:text-lg font-bold ml-2 opacity-90 ${
                         selectedSnapshot.token.price_change_percentage_24h >= 0 
