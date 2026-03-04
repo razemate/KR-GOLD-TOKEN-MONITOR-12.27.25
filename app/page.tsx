@@ -228,12 +228,12 @@ export default function Dashboard() {
           {/* Blueprint Step 5: Gold Spot Price Display */}
           <div className="hidden sm:flex flex-col items-end">
             <span
-              className="text-[10px] lg:text-xs font-semibold text-slate-600 uppercase tracking-wider"
+              className="text-[10px] lg:text-xs font-semibold text-gold-500 uppercase tracking-wider"
               title={spotSourceLabel}
             >
               Gold Spot
             </span>
-            <span className="text-sm lg:text-lg font-bold text-white leading-none mt-0.5">
+            <span className="text-[1.1rem] lg:text-[1.4rem] font-bold text-white leading-none mt-0.5">
               {snapshot?.meta?.goldSpotUsd 
                 ? `$${snapshot.meta.goldSpotUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` 
                 : 'N/A'
@@ -326,7 +326,7 @@ export default function Dashboard() {
                         ({selectedSnapshot.token.price_change_percentage_24h >= 0 ? '+' : ''}{selectedSnapshot.token.price_change_percentage_24h.toFixed(2)}% 24h)
                       </span>
                     </div>
-                  <div className="text-sm lg:text-base font-medium text-slate-700 dark:text-slate-300 mt-1 transition-colors duration-300">
+                  <div className="text-[0.95rem] lg:text-[1.1rem] font-medium text-slate-700 dark:text-slate-300 mt-1 transition-colors duration-300">
                       Market Cap: <span className="text-black dark:text-white">${(selectedSnapshot.token.market_cap / 1000000).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}M</span>
                     </div>
                 </div>
