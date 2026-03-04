@@ -57,21 +57,23 @@ export async function GET(req: NextRequest) {
   const slot = getSlotContext();
   const force = req.nextUrl.searchParams.get('force') === '1';
   const source = getTriggerSource(req, force);
+  const targetSlot = force ? slot.currentSlotKey : slot.targetPrefetchSlotKey;
+  const targetSlotEnd = force ? slot.currentSlotEndKey : slot.targetPrefetchSlotEndKey;
 
   await logRunSafe({
     source,
     status: 'started',
-    slotStart: slot.targetPrefetchSlotKey,
-    slotEnd: slot.targetPrefetchSlotEndKey,
-    detail: { isPrefetchMinute: slot.isPrefetchMinute, force },
+    slotStart: targetSlot,
+    slotEnd: targetSlotEnd,
+    detail: { isPrefetchMinute: slot.isPrefetchMinute, force, mode: force ? 'current_slot_recovery' : 'prefetch_next_slot' },
   });
 
   if (!slot.isPrefetchMinute && !force) {
     await logRunSafe({
       source,
       status: 'skipped',
-      slotStart: slot.targetPrefetchSlotKey,
-      slotEnd: slot.targetPrefetchSlotEndKey,
+      slotStart: targetSlot,
+      slotEnd: targetSlotEnd,
       detail: { reason: 'Not a prefetch minute', nowSlot: slot.currentSlotKey, nextSlot: slot.nextSlotKey },
     });
     return NextResponse.json({
@@ -83,14 +85,13 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  const targetSlot = slot.targetPrefetchSlotKey;
   const existing = await getSnapshotBySlot(targetSlot);
   if (existing?.status === 'ready' && existing.payload) {
     await logRunSafe({
       source,
       status: 'skipped',
-      slotStart: slot.targetPrefetchSlotKey,
-      slotEnd: slot.targetPrefetchSlotEndKey,
+      slotStart: targetSlot,
+      slotEnd: targetSlotEnd,
       detail: { reason: 'Slot already generated' },
     });
     return NextResponse.json({ ok: true, skipped: true, reason: 'Slot already generated', targetSlot });
@@ -104,7 +105,7 @@ export async function GET(req: NextRequest) {
 
     await upsertSnapshot({
       slot_start_vancouver: targetSlot,
-      slot_end_vancouver: slot.targetPrefetchSlotEndKey,
+      slot_end_vancouver: targetSlotEnd,
       slot_type: slot.slotType,
       coingecko_data: payload.tokens.map((t) => t.token),
       spot_gold_usd: payload.meta.goldSpotUsd,
@@ -118,7 +119,7 @@ export async function GET(req: NextRequest) {
         meta: {
           ...payload.meta,
           slotStartVancouver: targetSlot,
-          slotEndVancouver: slot.targetPrefetchSlotEndKey,
+          slotEndVancouver: targetSlotEnd,
           stale: false,
         },
       },
@@ -126,8 +127,8 @@ export async function GET(req: NextRequest) {
     await logRunSafe({
       source,
       status: 'success',
-      slotStart: slot.targetPrefetchSlotKey,
-      slotEnd: slot.targetPrefetchSlotEndKey,
+      slotStart: targetSlot,
+      slotEnd: targetSlotEnd,
       detail: {
         targetSlot,
         spotSource: payload.meta.goldSpotSource || 'Unavailable',
@@ -140,7 +141,7 @@ export async function GET(req: NextRequest) {
     const message = e instanceof Error ? e.message : String(e);
     await upsertSnapshot({
       slot_start_vancouver: targetSlot,
-      slot_end_vancouver: slot.targetPrefetchSlotEndKey,
+      slot_end_vancouver: targetSlotEnd,
       slot_type: slot.slotType,
       coingecko_data: null,
       spot_gold_usd: null,
@@ -154,8 +155,8 @@ export async function GET(req: NextRequest) {
     await logRunSafe({
       source,
       status: 'failed',
-      slotStart: slot.targetPrefetchSlotKey,
-      slotEnd: slot.targetPrefetchSlotEndKey,
+      slotStart: targetSlot,
+      slotEnd: targetSlotEnd,
       error: message,
       detail: { targetSlot },
     });
