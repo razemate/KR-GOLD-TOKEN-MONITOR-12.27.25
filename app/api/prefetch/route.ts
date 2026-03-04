@@ -8,6 +8,7 @@ export const dynamic = 'force-dynamic';
 
 function getTriggerSource(req: NextRequest, force: boolean): 'cron_tick' | 'api_prefetch' | 'api_force' {
   if (force) return 'api_force';
+  if (req.headers.has('x-vercel-cron')) return 'cron_tick';
   if ((req.headers.get('x-kr-trigger') || '').toLowerCase() === 'cron_tick') return 'cron_tick';
   return 'api_prefetch';
 }
@@ -35,6 +36,7 @@ async function logRunSafe(params: {
 }
 
 function authorized(req: NextRequest): boolean {
+  if (req.headers.has('x-vercel-cron')) return true;
   const secret = process.env.PREFETCH_CRON_SECRET;
   if (!secret) return true; // local/dev convenience
   const auth = req.headers.get('authorization') || '';
