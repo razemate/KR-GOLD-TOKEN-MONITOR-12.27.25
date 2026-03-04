@@ -14,15 +14,21 @@ function parseStooqCsvSpot(text: string): number | null {
     .map((line) => line.trim())
     .filter(Boolean);
 
-  if (lines.length < 2) return null;
+  if (lines.length < 1) return null;
 
-  // Expected format:
-  // Symbol,Date,Time,Open,High,Low,Close,Volume
+  let recordLine = lines[lines.length - 1];
+  const firstLine = lines[0].toLowerCase();
+  const hasHeader = firstLine.includes('symbol') || firstLine.includes('close');
+  if (hasHeader) {
+    if (lines.length < 2) return null;
+    recordLine = lines[1];
+  }
+
+  // Supported formats:
+  // Headered: Symbol,Date,Time,Open,High,Low,Close,Volume
   // XAUUSD,2026-03-04,19:12:03,5100.00,5120.43,5090.00,5120.43,0
-  const header = lines[0].toLowerCase();
-  if (!header.includes('symbol') || !header.includes('close')) return null;
-
-  const record = lines[lines.length - 1].split(',');
+  // Headerless (current Stooq): XAUUSD,20260304,193048,5104.055,5206.135,5085.625,5123.755,,
+  const record = recordLine.split(',');
   if (record.length < 7) return null;
 
   const symbol = record[0]?.replace(/"/g, '').trim().toLowerCase();
