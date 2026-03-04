@@ -1,16 +1,38 @@
 import { fetchWithRetry } from '@/lib/retry';
 
-function parseFirstGoldLikeNumber(text: string): number | null {
-  const matches = text.match(/\d{1,3}(?:,\d{3})*(?:\.\d+)?|\d+(?:\.\d+)?/g);
-  if (!matches) return null;
+function toValidSpot(value: string | undefined): number | null {
+  if (!value) return null;
+  const cleaned = value.replace(/"/g, '').trim();
+  const n = Number(cleaned);
+  if (!Number.isFinite(n)) return null;
+  return n > 1000 && n < 10000 ? n : null;
+}
 
-  for (const raw of matches) {
-    const n = Number(raw.replace(/,/g, ''));
-    if (Number.isFinite(n) && n > 1000 && n < 10000) {
-      return n;
-    }
-  }
-  return null;
+function parseStooqCsvSpot(text: string): number | null {
+  const lines = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (lines.length < 2) return null;
+
+  // Expected format:
+  // Symbol,Date,Time,Open,High,Low,Close,Volume
+  // XAUUSD,2026-03-04,19:12:03,5100.00,5120.43,5090.00,5120.43,0
+  const header = lines[0].toLowerCase();
+  if (!header.includes('symbol') || !header.includes('close')) return null;
+
+  const record = lines[lines.length - 1].split(',');
+  if (record.length < 7) return null;
+
+  const symbol = record[0]?.replace(/"/g, '').trim().toLowerCase();
+  if (symbol !== 'xauusd') return null;
+
+  const close = toValidSpot(record[6]);
+  if (close !== null) return close;
+
+  // Fallback to open if close is temporarily missing.
+  return toValidSpot(record[3]);
 }
 
 export async function fetchStooqSpotGoldUsd(): Promise<number | null> {
@@ -23,7 +45,7 @@ export async function fetchStooqSpotGoldUsd(): Promise<number | null> {
 
     if (!response.ok) return null;
     const text = await response.text();
-    return parseFirstGoldLikeNumber(text);
+    return parseStooqCsvSpot(text);
   } catch {
     return null;
   }
@@ -60,4 +82,3 @@ export async function resolveSpotGoldUsd(): Promise<{ price: number | null; sour
 
   return { price: null, source: 'Unavailable' };
 }
-
