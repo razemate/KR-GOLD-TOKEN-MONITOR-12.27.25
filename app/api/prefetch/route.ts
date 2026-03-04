@@ -46,6 +46,10 @@ export async function GET(req: NextRequest) {
 
   try {
     const payload = await buildSnapshotPayload();
+    if (payload.meta.goldSpotUsd === null) {
+      throw new Error('Spot price unavailable from Stooq and GoldPrice fallback');
+    }
+
     await upsertSnapshot({
       slot_start_vancouver: targetSlot,
       slot_end_vancouver: slot.targetPrefetchSlotEndKey,

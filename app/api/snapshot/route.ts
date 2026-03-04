@@ -20,6 +20,14 @@ function withMeta(base: SnapshotResponse, slotStart: string, slotEnd: string, st
   };
 }
 
+function isUsableReadySnapshot(row: {
+  status: string;
+  payload: SnapshotResponse | null;
+  spot_gold_usd: number | null;
+} | null | undefined): row is { payload: SnapshotResponse; spot_gold_usd: number } {
+  return Boolean(row && row.status === 'ready' && row.payload && row.spot_gold_usd !== null);
+}
+
 export async function GET() {
   const { cacheHeader } = getRefreshCadence();
   const slot = getSlotContext();
@@ -35,13 +43,13 @@ export async function GET() {
       }
 
       const current = await getSnapshotBySlot(slot.currentSlotKey);
-      if (current?.payload && current.status === 'ready') {
+      if (isUsableReadySnapshot(current)) {
         const payload = withMeta(current.payload, current.slot_start_vancouver, current.slot_end_vancouver, false);
         return NextResponse.json(payload, { headers: { 'Cache-Control': cacheHeader } });
       }
 
       const latestReady = await getLatestReadySnapshot();
-      if (latestReady?.payload) {
+      if (isUsableReadySnapshot(latestReady)) {
         const payload = withMeta(
           latestReady.payload,
           latestReady.slot_start_vancouver,
@@ -70,4 +78,3 @@ export async function GET() {
     );
   }
 }
-
