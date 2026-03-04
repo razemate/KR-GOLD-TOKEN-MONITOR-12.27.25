@@ -233,7 +233,7 @@ export default function Dashboard() {
             >
               Gold Spot Price
             </span>
-            <span className="text-[1.1rem] lg:text-[1.4rem] font-medium text-white leading-none mt-0.5">
+            <span className="text-[1.45rem] lg:text-[1.85rem] font-bold text-white leading-none mt-0.5">
               {snapshot?.meta?.goldSpotUsd 
                 ? `$${snapshot.meta.goldSpotUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` 
                 : 'N/A'
