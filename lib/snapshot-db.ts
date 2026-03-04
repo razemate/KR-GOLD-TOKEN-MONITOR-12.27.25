@@ -57,7 +57,7 @@ export async function upsertSnapshot(row: SnapshotRow): Promise<void> {
   const c = cfg();
   if (!c.enabled || !c.baseUrl || !c.serviceKey) return;
   const url = `${c.baseUrl}/rest/v1/price_snapshots?on_conflict=slot_start_vancouver`;
-  await fetch(url, {
+  const res = await fetch(url, {
     method: 'POST',
     headers: {
       ...headers(c.serviceKey),
@@ -65,7 +65,10 @@ export async function upsertSnapshot(row: SnapshotRow): Promise<void> {
     },
     body: JSON.stringify(row),
   });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Supabase upsert failed (${res.status}): ${body}`);
+  }
 }
 
 export type { SnapshotRow };
-
