@@ -43,7 +43,7 @@ function authorized(req: NextRequest): boolean {
   return auth === `Bearer ${secret}`;
 }
 
-export async function GET(req: NextRequest) {
+async function handlePrefetch(req: NextRequest) {
   if (!authorized(req)) {
     return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
   }
@@ -164,4 +164,12 @@ export async function GET(req: NextRequest) {
     });
     return NextResponse.json({ ok: false, error: message, targetSlot }, { status: 500 });
   }
+}
+
+export async function GET(req: NextRequest) {
+  return handlePrefetch(req);
+}
+
+export async function POST(req: NextRequest) {
+  return handlePrefetch(req);
 }
