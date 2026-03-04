@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { buildSnapshotPayload } from '@/lib/snapshot-build';
-import { getLatestReadySnapshot, getSnapshotBySlot, isSnapshotDbConfigured, upsertSnapshot } from '@/lib/snapshot-db';
+import { getLatestReadySnapshot, getSnapshotBySlot, insertSchedulerRun, isSnapshotDbConfigured, upsertSnapshot } from '@/lib/snapshot-db';
 import { getSlotContext, isDbMode } from '@/lib/slot';
 import { SnapshotResponse } from '@/lib/types';
 
@@ -27,10 +27,46 @@ function isUsableReadySnapshot(row: {
   return Boolean(row && row.status === 'ready' && row.payload && row.spot_gold_usd !== null);
 }
 
+async function logAutocatchupSafe(params: {
+  status: 'started' | 'success' | 'failed';
+  slotStart: string;
+  slotEnd: string;
+  detail?: Record<string, unknown> | null;
+  error?: string | null;
+}) {
+  try {
+    await insertSchedulerRun({
+      trigger_source: 'snapshot_autocatchup',
+      status: params.status,
+      slot_start_vancouver: params.slotStart,
+      slot_end_vancouver: params.slotEnd,
+      detail: params.detail || null,
+      error: params.error || null,
+    });
+  } catch (e) {
+    console.error('Autocatchup log write failed:', e);
+  }
+}
+
 async function tryGenerateCurrentSlotSnapshot(slot: ReturnType<typeof getSlotContext>): Promise<void> {
   // Self-healing fallback when scheduler misses: generate the current slot on-demand.
+  await logAutocatchupSafe({
+    status: 'started',
+    slotStart: slot.currentSlotKey,
+    slotEnd: slot.currentSlotEndKey,
+    detail: { reason: 'Current slot missing, trying catchup' },
+  });
+
   const payload = await buildSnapshotPayload();
-  if (payload.meta.goldSpotUsd === null) return;
+  if (payload.meta.goldSpotUsd === null) {
+    await logAutocatchupSafe({
+      status: 'failed',
+      slotStart: slot.currentSlotKey,
+      slotEnd: slot.currentSlotEndKey,
+      error: 'Spot price unavailable from Stooq and GoldPrice fallback',
+    });
+    return;
+  }
 
   await upsertSnapshot({
     slot_start_vancouver: slot.currentSlotKey,
@@ -51,6 +87,17 @@ async function tryGenerateCurrentSlotSnapshot(slot: ReturnType<typeof getSlotCon
         slotEndVancouver: slot.currentSlotEndKey,
         stale: false,
       },
+    },
+  });
+
+  await logAutocatchupSafe({
+    status: 'success',
+    slotStart: slot.currentSlotKey,
+    slotEnd: slot.currentSlotEndKey,
+    detail: {
+      spotSource: payload.meta.goldSpotSource || 'Unavailable',
+      spotGoldUsd: payload.meta.goldSpotUsd,
+      tokenCount: payload.tokens.length,
     },
   });
 }

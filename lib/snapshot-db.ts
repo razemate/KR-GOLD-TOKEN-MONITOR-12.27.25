@@ -15,6 +15,15 @@ type SnapshotRow = {
   payload: SnapshotResponse | null;
 };
 
+type SchedulerRunRow = {
+  trigger_source: 'cron_tick' | 'api_prefetch' | 'api_force' | 'snapshot_autocatchup';
+  status: 'started' | 'skipped' | 'success' | 'failed';
+  slot_start_vancouver: string | null;
+  slot_end_vancouver: string | null;
+  detail: Record<string, unknown> | null;
+  error: string | null;
+};
+
 function cfg() {
   const baseUrl = process.env.SNAPSHOT_SUPABASE_URL;
   const serviceKey = process.env.SNAPSHOT_SUPABASE_SERVICE_ROLE_KEY;
@@ -71,4 +80,22 @@ export async function upsertSnapshot(row: SnapshotRow): Promise<void> {
   }
 }
 
-export type { SnapshotRow };
+export async function insertSchedulerRun(row: SchedulerRunRow): Promise<void> {
+  const c = cfg();
+  if (!c.enabled || !c.baseUrl || !c.serviceKey) return;
+  const url = `${c.baseUrl}/rest/v1/snapshot_scheduler_runs`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      ...headers(c.serviceKey),
+      Prefer: 'return=minimal',
+    },
+    body: JSON.stringify(row),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Supabase scheduler run insert failed (${res.status}): ${body}`);
+  }
+}
+
+export type { SnapshotRow, SchedulerRunRow };

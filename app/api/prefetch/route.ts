@@ -1,10 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { buildSnapshotPayload } from '@/lib/snapshot-build';
-import { getSnapshotBySlot, isSnapshotDbConfigured, upsertSnapshot } from '@/lib/snapshot-db';
+import { getSnapshotBySlot, insertSchedulerRun, isSnapshotDbConfigured, upsertSnapshot } from '@/lib/snapshot-db';
 import { getSlotContext, isDbMode } from '@/lib/slot';
 
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
+
+function getTriggerSource(req: NextRequest, force: boolean): 'cron_tick' | 'api_prefetch' | 'api_force' {
+  if (force) return 'api_force';
+  if ((req.headers.get('x-kr-trigger') || '').toLowerCase() === 'cron_tick') return 'cron_tick';
+  return 'api_prefetch';
+}
+
+async function logRunSafe(params: {
+  source: 'cron_tick' | 'api_prefetch' | 'api_force';
+  status: 'started' | 'skipped' | 'success' | 'failed';
+  slotStart: string | null;
+  slotEnd: string | null;
+  detail?: Record<string, unknown> | null;
+  error?: string | null;
+}) {
+  try {
+    await insertSchedulerRun({
+      trigger_source: params.source,
+      status: params.status,
+      slot_start_vancouver: params.slotStart,
+      slot_end_vancouver: params.slotEnd,
+      detail: params.detail || null,
+      error: params.error || null,
+    });
+  } catch (e) {
+    console.error('Scheduler log write failed:', e);
+  }
+}
 
 function authorized(req: NextRequest): boolean {
   const secret = process.env.PREFETCH_CRON_SECRET;
@@ -28,7 +56,24 @@ export async function GET(req: NextRequest) {
 
   const slot = getSlotContext();
   const force = req.nextUrl.searchParams.get('force') === '1';
+  const source = getTriggerSource(req, force);
+
+  await logRunSafe({
+    source,
+    status: 'started',
+    slotStart: slot.targetPrefetchSlotKey,
+    slotEnd: slot.targetPrefetchSlotEndKey,
+    detail: { isPrefetchMinute: slot.isPrefetchMinute, force },
+  });
+
   if (!slot.isPrefetchMinute && !force) {
+    await logRunSafe({
+      source,
+      status: 'skipped',
+      slotStart: slot.targetPrefetchSlotKey,
+      slotEnd: slot.targetPrefetchSlotEndKey,
+      detail: { reason: 'Not a prefetch minute', nowSlot: slot.currentSlotKey, nextSlot: slot.nextSlotKey },
+    });
     return NextResponse.json({
       ok: true,
       skipped: true,
@@ -41,6 +86,13 @@ export async function GET(req: NextRequest) {
   const targetSlot = slot.targetPrefetchSlotKey;
   const existing = await getSnapshotBySlot(targetSlot);
   if (existing?.status === 'ready' && existing.payload) {
+    await logRunSafe({
+      source,
+      status: 'skipped',
+      slotStart: slot.targetPrefetchSlotKey,
+      slotEnd: slot.targetPrefetchSlotEndKey,
+      detail: { reason: 'Slot already generated' },
+    });
     return NextResponse.json({ ok: true, skipped: true, reason: 'Slot already generated', targetSlot });
   }
 
@@ -71,6 +123,18 @@ export async function GET(req: NextRequest) {
         },
       },
     });
+    await logRunSafe({
+      source,
+      status: 'success',
+      slotStart: slot.targetPrefetchSlotKey,
+      slotEnd: slot.targetPrefetchSlotEndKey,
+      detail: {
+        targetSlot,
+        spotSource: payload.meta.goldSpotSource || 'Unavailable',
+        spotGoldUsd: payload.meta.goldSpotUsd,
+        tokenCount: payload.tokens.length,
+      },
+    });
     return NextResponse.json({ ok: true, generated: true, targetSlot });
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : String(e);
@@ -86,6 +150,14 @@ export async function GET(req: NextRequest) {
       generated_at: new Date().toISOString(),
       error: message,
       payload: null,
+    });
+    await logRunSafe({
+      source,
+      status: 'failed',
+      slotStart: slot.targetPrefetchSlotKey,
+      slotEnd: slot.targetPrefetchSlotEndKey,
+      error: message,
+      detail: { targetSlot },
     });
     return NextResponse.json({ ok: false, error: message, targetSlot }, { status: 500 });
   }
