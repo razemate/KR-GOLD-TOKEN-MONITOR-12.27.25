@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { buildSnapshotPayload } from '@/lib/snapshot-build';
-import { getLatestReadySnapshot, getSnapshotBySlot, isSnapshotDbConfigured } from '@/lib/snapshot-db';
-import { getRefreshCadence } from '@/lib/schedule';
+import { getLatestReadySnapshot, getSnapshotBySlot, isSnapshotDbConfigured, upsertSnapshot } from '@/lib/snapshot-db';
 import { getSlotContext, isDbMode } from '@/lib/slot';
 import { SnapshotResponse } from '@/lib/types';
 
@@ -28,8 +27,35 @@ function isUsableReadySnapshot(row: {
   return Boolean(row && row.status === 'ready' && row.payload && row.spot_gold_usd !== null);
 }
 
+async function tryGenerateCurrentSlotSnapshot(slot: ReturnType<typeof getSlotContext>): Promise<void> {
+  // Self-healing fallback when scheduler misses: generate the current slot on-demand.
+  const payload = await buildSnapshotPayload();
+  if (payload.meta.goldSpotUsd === null) return;
+
+  await upsertSnapshot({
+    slot_start_vancouver: slot.currentSlotKey,
+    slot_end_vancouver: slot.currentSlotEndKey,
+    slot_type: slot.slotType,
+    coingecko_data: payload.tokens.map((t) => t.token),
+    spot_gold_usd: payload.meta.goldSpotUsd,
+    spot_source: payload.meta.goldSpotSource || 'Unavailable',
+    ai_analysis: payload.tokens.map((t) => t.intelligence || null),
+    status: 'ready',
+    generated_at: new Date().toISOString(),
+    error: null,
+    payload: {
+      ...payload,
+      meta: {
+        ...payload.meta,
+        slotStartVancouver: slot.currentSlotKey,
+        slotEndVancouver: slot.currentSlotEndKey,
+        stale: false,
+      },
+    },
+  });
+}
+
 export async function GET() {
-  const { cacheHeader } = getRefreshCadence();
   const slot = getSlotContext();
 
   try {
@@ -45,7 +71,25 @@ export async function GET() {
       const current = await getSnapshotBySlot(slot.currentSlotKey);
       if (isUsableReadySnapshot(current)) {
         const payload = withMeta(current.payload, current.slot_start_vancouver, current.slot_end_vancouver, false);
-        return NextResponse.json(payload, { headers: { 'Cache-Control': cacheHeader } });
+        return NextResponse.json(payload, { headers: { 'Cache-Control': 'no-store' } });
+      }
+
+      if (process.env.SNAPSHOT_AUTO_CATCHUP !== 'false') {
+        try {
+          await tryGenerateCurrentSlotSnapshot(slot);
+          const refreshed = await getSnapshotBySlot(slot.currentSlotKey);
+          if (isUsableReadySnapshot(refreshed)) {
+            const payload = withMeta(
+              refreshed.payload,
+              refreshed.slot_start_vancouver,
+              refreshed.slot_end_vancouver,
+              false
+            );
+            return NextResponse.json(payload, { headers: { 'Cache-Control': 'no-store' } });
+          }
+        } catch (e) {
+          console.error('Snapshot auto-catchup failed:', e);
+        }
       }
 
       const latestReady = await getLatestReadySnapshot();
@@ -56,7 +100,7 @@ export async function GET() {
           latestReady.slot_end_vancouver,
           true
         );
-        return NextResponse.json(payload, { headers: { 'Cache-Control': cacheHeader } });
+        return NextResponse.json(payload, { headers: { 'Cache-Control': 'no-store' } });
       }
 
       return NextResponse.json(
@@ -68,7 +112,7 @@ export async function GET() {
     // Live mode retained for migration fallback only.
     const live = await buildSnapshotPayload();
     const payload = withMeta(live, slot.currentSlotKey, slot.currentSlotEndKey, false);
-    return NextResponse.json(payload, { headers: { 'Cache-Control': cacheHeader } });
+    return NextResponse.json(payload, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('Snapshot API failed:', error);

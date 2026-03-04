@@ -64,7 +64,7 @@ export default function Dashboard() {
         setError(null);
 
         const startTime = Date.now();
-        const res = await fetch("/api/snapshot");
+        const res = await fetch("/api/snapshot", { cache: "no-store" });
         const duration = Date.now() - startTime;
         console.log(`Snapshot fetched in ${duration}ms`);
 
