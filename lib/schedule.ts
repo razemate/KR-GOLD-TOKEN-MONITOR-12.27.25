@@ -1,16 +1,13 @@
+import { getSlotContext } from '@/lib/slot';
+
 export function getRefreshCadence() {
-  const now = new Date();
-  const day = now.getUTCDay(); // 0 = Sunday, 6 = Saturday
-  const isWeekend = day === 0 || day === 6;
-  
-  // Weekdays (1-5): 5 minutes (300s)
-  // Weekends (0, 6): 15 minutes (900s)
-  const intervalSeconds = isWeekend ? 900 : 300;
+  const slot = getSlotContext();
+  const intervalSeconds = slot.refreshIntervalSeconds;
 
   return {
-    isWeekend,
+    isWeekend: slot.isWeekend,
     refreshInterval: intervalSeconds,
-    cacheHeader: `public, s-maxage=${intervalSeconds}, stale-while-revalidate=${isWeekend ? 120 : 60}`
+    cacheHeader: `public, s-maxage=${intervalSeconds}, stale-while-revalidate=${slot.isWeekend ? 120 : 60}`,
   };
 }
 

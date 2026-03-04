@@ -7,7 +7,6 @@ const MODEL_NAME = 'gemini-2.5-flash';
 const snapshotSchema: Schema = {
   type: SchemaType.OBJECT,
   properties: {
-    spotGoldUsd: { type: SchemaType.NUMBER },
     items: {
       type: SchemaType.ARRAY,
       items: {
@@ -29,13 +28,13 @@ const snapshotSchema: Schema = {
       }
     }
   },
-  required: ['spotGoldUsd', 'items']
+  required: ['items']
 };
 
 export async function generateSnapshotIntelligence(
   tokens: TokenMarket[],
   metricsMap: Record<string, DerivedMetrics>
-): Promise<{ spotGoldUsd: number | null; items: MarketIntelItem[] }> {
+): Promise<MarketIntelItem[]> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error("GEMINI_API_KEY is not configured");
@@ -47,8 +46,7 @@ export async function generateSnapshotIntelligence(
     systemInstruction: `You are a Senior RWA (Real World Asset) Analyst specializing in Gold-Pegged Tokens.
 PROTOCOL: Before providing the JSON output, you must "think" through the following:
 
-Retrieve the current spot gold price (USD/oz) using Google Search Grounding.
-Calculate the % deviation between each token's current_price and the provided spot price (if available).
+Use the provided spot gold price context (if available) and evaluate each token's relative peg condition.
 
 Compare the 24h volume against the market cap to verify liquidity health.
 
@@ -57,7 +55,6 @@ Assess if the price change (volatility) is aligned with broader gold market move
 OUTPUT REQUIREMENTS:
 
 Return a valid JSON object matching the snapshotSchema.
-spotGoldUsd must be a numeric USD price per troy ounce derived from Google Search Grounding.
 
 Ensure the 'summary' field is professional, objective, and specifically mentions the peg status (Tight, Stressed, or Normal).
 
@@ -134,20 +131,11 @@ The 'confidence0to100' score must reflect the consistency between the price and 
     responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
 
     const parsed = JSON.parse(responseText);
-    const spotGoldUsd = Number(parsed.spotGoldUsd);
-    const validSpotGoldUsd =
-      Number.isFinite(spotGoldUsd) && spotGoldUsd > 1000
-        ? spotGoldUsd
-        : null;
-    
     if (!parsed.items || !Array.isArray(parsed.items) || parsed.items.length === 0) {
       throw new Error("Invalid or empty response from Gemini");
     }
 
-    return {
-      spotGoldUsd: validSpotGoldUsd,
-      items: parsed.items
-    };
+    return parsed.items;
   } catch (error: unknown) {
     console.error("Gemini batch call failed:", error);
     throw error;
@@ -237,21 +225,17 @@ export async function getFallbackGoldSpotPrice(): Promise<{ price: number | null
   };
 
   const tryGoldPriceApi = async () => {
-    try {
-      const response = await fetch("https://data-asg.goldprice.org/dbXRates/USD", {
-        cache: "no-store",
-        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
-      });
-      if (!response.ok) throw new Error(`Status ${response.status}`);
-      const data = await response.json();
-      const value = Number(data?.items?.[0]?.xauPrice);
-      if (Number.isFinite(value) && value > 1000) {
-        return { price: value, source: 'Fallback: GoldPrice.org API' };
-      }
-      throw new Error("Invalid data");
-    } catch (e) {
-      throw e;
+    const response = await fetch("https://data-asg.goldprice.org/dbXRates/USD", {
+      cache: "no-store",
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
+    });
+    if (!response.ok) throw new Error(`Status ${response.status}`);
+    const data = await response.json();
+    const value = Number(data?.items?.[0]?.xauPrice);
+    if (Number.isFinite(value) && value > 1000) {
+      return { price: value, source: 'Fallback: GoldPrice.org API' };
     }
+    throw new Error("Invalid data");
   };
 
   const tryScrape = async () => {

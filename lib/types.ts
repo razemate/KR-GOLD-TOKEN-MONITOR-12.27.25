@@ -64,6 +64,9 @@ export interface SnapshotMeta {
   refreshInterval: number;
   goldSpotUsd: number | null;
   goldSpotSource?: string;
+  slotStartVancouver?: string;
+  slotEndVancouver?: string;
+  stale?: boolean;
 }
 
 export interface SnapshotResponse {

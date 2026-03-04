@@ -3,8 +3,17 @@ import { fetchYahooGoldPrice, scrapeGoldPriceOrg } from '@/lib/gemini';
 
 export const dynamic = 'force-dynamic';
 
+type DebugReport = {
+  timestamp: string;
+  env: {
+    GEMINI_KEY_EXISTS: boolean;
+    NODE_ENV?: string;
+  };
+  results: Record<string, unknown>;
+};
+
 export async function GET() {
-  const report: any = {
+  const report: DebugReport = {
     timestamp: new Date().toISOString(),
     env: {
       GEMINI_KEY_EXISTS: !!process.env.GEMINI_API_KEY,
