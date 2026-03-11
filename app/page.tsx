@@ -194,8 +194,8 @@ export default function Dashboard() {
   return (
     <div className={`flex flex-col h-screen overflow-hidden bg-white dark:bg-slate-950 transition-colors duration-300 ${isDark ? 'dark' : ''}`}>
       {/* Top Header (Inlined) - Renders Immediately */}
-      <header className="w-full bg-slate-950 border-b border-slate-800 py-4 px-4 lg:px-6 flex items-center justify-between sticky top-0 z-50">
-        <div className="flex items-center gap-3 lg:gap-4">
+      <header className="relative w-full bg-slate-950 border-b border-slate-800 py-4 px-4 lg:px-6 flex items-center justify-between sticky top-0 z-50">
+        <div className="flex items-center gap-3 lg:gap-4 z-10">
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             className="md:hidden p-2 -ml-2 text-slate-600 hover:text-white transition-colors"
@@ -224,7 +224,27 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="flex items-center gap-4 lg:gap-6">
+        {/* Desktop Centered Banner */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden md:block z-20">
+          <a 
+            href="https://versamet.com/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="block"
+          >
+            <div className="relative h-[65.66px] w-[350.21px] my-[3px]">
+              <Image
+                src="/Powered By Versamet1.png"
+                alt="Powered By Versamet"
+                fill
+                className="object-contain"
+                priority
+              />
+            </div>
+          </a>
+        </div>
+
+        <div className="flex items-center gap-4 lg:gap-6 z-10">
           {/* Blueprint Step 5: Gold Spot Price Display */}
           <div className="hidden sm:flex flex-col items-end">
             <span
@@ -250,6 +270,26 @@ export default function Dashboard() {
         </button>
         </div>
       </header>
+
+      {/* Mobile Banner (Outside Header) */}
+      <div className="md:hidden w-full bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex justify-center py-1 transition-colors duration-300">
+        <a 
+          href="https://versamet.com/" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="block my-[3px]"
+        >
+          <div className="relative h-[65.66px] w-[350.21px]">
+            <Image
+              src="/Powered By Versamet1.png"
+              alt="Powered By Versamet"
+              fill
+              className="object-contain"
+              priority
+            />
+          </div>
+        </a>
+      </div>
 
       <div className="flex flex-1 overflow-hidden relative">
         {/* Mobile Sidebar Overlay */}
